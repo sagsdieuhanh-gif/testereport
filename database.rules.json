@@ -1,0 +1,48 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "sags_live_v470": {
+      ".read": true,
+      ".write": true,
+      "finals": {
+        ".indexOn": [
+          "eventAtMs"
+        ]
+      },
+      "cross_mail": {
+        "$user": {
+          "events": {
+            ".indexOn": [
+              "eventAtMs"
+            ]
+          }
+        }
+      },
+      "ops": {
+        "events": {
+          ".indexOn": [
+            "eventAtMs"
+          ]
+        }
+      },
+      "activity": {},
+      "cross_state": {},
+      "kh208": {},
+      "rs_mail": {},
+      "usage": {},
+      "account_permissions": {},
+      "ramp_progress": {},
+      "test": {}
+    },
+    "sags_live_v469": {
+      ".read": true,
+      ".write": true,
+      "finals": {
+        ".indexOn": [
+          "eventAtMs"
+        ]
+      }
+    }
+  }
+}

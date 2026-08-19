@@ -1,0 +1,25 @@
+{
+  "name": "PĐH SAGS-CXR",
+  "short_name": "PĐH SAGS-CXR",
+  "description": "Ứng dụng Phiếu điều hành SAGS-CXR",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#003B8E",
+  "lang": "vi-VN",
+  "icons": [
+    {
+      "src": "./icon-192.png?v=48802",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png?v=48802",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
