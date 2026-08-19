@@ -12,3 +12,14 @@ window.SAGS_FIREBASE_CONFIG = Object.freeze({
   appId: "1:670672018280:web:46c336986ecdbbc6a954dd",
   measurementId: "G-JFTKH5BHPX"
 });
+
+// V1.87: load the Flight Workspace architecture layer globally without changing index.html.
+// The module waits for the existing E-Report globals/role UI, so current business workflows remain untouched.
+(function loadSagsFlightWorkspace(){
+  if(typeof document==="undefined"||document.getElementById("sagsFlightWorkspaceScript"))return;
+  const s=document.createElement("script");
+  s.id="sagsFlightWorkspaceScript";
+  s.src="./flight-workspace.js?v=V1.87-20260820-01";
+  s.defer=true;
+  (document.head||document.documentElement).appendChild(s);
+})();
