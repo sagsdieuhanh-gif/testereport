@@ -1,12 +1,12 @@
-/* E-REPORT SAGS · SAFE UPDATE RUNTIME · V1.90
+/* E-REPORT SAGS · SAFE UPDATE RUNTIME · V1.91
    Fixes repeated update prompts by using a release manifest, semantic build ordering,
    verified service-worker activation, and cleanup after the target build becomes active.
 */
 (function(root){
 "use strict";
-const RELEASE_VERSION="V1.90";
-const RELEASE_DISPLAY="V1.90 AI";
-const RELEASE_BUILD="V1.90-20260820-01";
+const RELEASE_VERSION="V1.91";
+const RELEASE_DISPLAY="V1.91 AI";
+const RELEASE_BUILD="V1.91-20260820-01";
 const VERSION_URL="./version.json";
 const MANIFEST_URL="./update-manifest.json";
 const DISMISS_KEY="pdh-update-dismissed";
@@ -44,7 +44,7 @@ function currentDisplay(){
   return S(root.SAGS_RUNTIME_DISPLAY||document.documentElement.getAttribute("data-app-version")||document.getElementById("buildMarker")?.textContent);
 }
 function syncRuntimeDisplay(){
-  // Never relabel an old page before V1.90 is actually active.
+  // Never relabel an old page before V1.91 is actually active.
   if(S(currentBuild())!==RELEASE_BUILD)return false;
   try{
     root.SAGS_RUNTIME_DISPLAY=RELEASE_DISPLAY;
@@ -75,7 +75,8 @@ async function releaseInfo(){
     const [v,m]=await Promise.all([fetchJson(VERSION_URL,"version"),fetchJson(MANIFEST_URL,"manifest")]);
     const vb=S(v?.build),mb=S(m?.build),display=S(m?.displayVersion||v?.displayVersion||v?.label||m?.version||v?.version);
     if(!vb||!mb||vb!==mb)return {ready:false,reason:"VERSION_MANIFEST_MISMATCH",versionBuild:vb,manifestBuild:mb};
-    if(S(m?.serviceWorkerBuild)&&S(m.serviceWorkerBuild)!==vb)return {ready:false,reason:"MANIFEST_SW_MISMATCH",build:vb};
+    const declared=[m?.serviceWorkerBuild,m?.updateRuntimeBuild,m?.flightWorkspaceBuild,m?.firebaseConfigBuild].map(S).filter(Boolean);
+    if(declared.some(x=>x!==vb))return {ready:false,reason:"MANIFEST_COMPONENT_MISMATCH",build:vb,declared};
     return {ready:true,build:vb,display:display||vb,manifest:m,version:v};
   }catch(e){return {ready:false,reason:"NETWORK",error:e};}
 }
@@ -113,12 +114,12 @@ async function check(){
   showPrompt(info);
 }
 async function verifyAssets(target){
-  const [sw,rt,fw,m,v]=await Promise.all([
-    fetchText("./service-worker.js","sw-"+target),fetchText("./update-runtime.js","rt-"+target),fetchText("./flight-workspace.js","fw-"+target),fetchJson(MANIFEST_URL,"m2-"+target),fetchJson(VERSION_URL,"v2-"+target)
+  const [sw,rt,fw,fb,m,v]=await Promise.all([
+    fetchText("./service-worker.js","sw-"+target),fetchText("./update-runtime.js","rt-"+target),fetchText("./flight-workspace.js","fw-"+target),fetchText("./firebase-config.js","fb-"+target),fetchJson(MANIFEST_URL,"m2-"+target),fetchJson(VERSION_URL,"v2-"+target)
   ]);
-  const swb=buildFromJs(sw,"sw"),rtb=buildFromJs(rt,"runtime"),fwb=buildFromJs(fw,"fw"),mb=S(m?.build),vb=S(v?.build);
-  const all=[swb,rtb,fwb,mb,vb];
-  if(all.some(x=>x!==target))throw new Error("Bản mới chưa đồng bộ đủ file: "+JSON.stringify({sw:swb,runtime:rtb,workspace:fwb,manifest:mb,version:vb}));
+  const swb=buildFromJs(sw,"sw"),rtb=buildFromJs(rt,"runtime"),fwb=buildFromJs(fw,"fw"),fbb=S(/const\s+BUILD\s*=\s*["']([^"']+)["']/.exec(S(fb))?.[1]),mb=S(m?.build),vb=S(v?.build);
+  const all=[swb,rtb,fwb,fbb,mb,vb];
+  if(all.some(x=>x!==target))throw new Error("Bản mới chưa đồng bộ đủ file: "+JSON.stringify({sw:swb,runtime:rtb,workspace:fwb,firebase:fbb,manifest:mb,version:vb}));
   return true;
 }
 function workerBuild(worker,timeout=2500){
@@ -187,10 +188,22 @@ function dismiss(){
   if(state.target){try{sessionStorage.setItem(DISMISS_KEY,JSON.stringify({build:state.target,until:Date.now()+10*60*1000}));}catch(_){}}
   hidePrompt();
 }
+function installLegacyPromptGuard(){
+  if(state.legacyGuard)return;state.legacyGuard=true;
+  try{
+    const guard=()=>{
+      if(S(currentBuild())!==RELEASE_BUILD)return;
+      const m=document.getElementById("appUpdateModal");
+      if(m&&m.style.display!=="none")m.style.display="none";
+      const b=document.getElementById("appUpdateNowBtn");if(b&&state.busy===false)b.disabled=false;
+    };
+    const mo=new MutationObserver(guard);mo.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:["style","class"]});state.legacyObserver=mo;setInterval(guard,4000);guard();
+  }catch(_){}
+}
 function installOverrides(){
   if(state.installed)return;
   if(typeof root.applyAppUpdate!=="function"||!document.getElementById("appUpdateNowBtn")){setTimeout(installOverrides,60);return;}
-  state.installed=true;
+  state.installed=true;installLegacyPromptGuard();
   root.applyAppUpdate=apply;
   root.dismissAppUpdate=dismiss;
   root.checkForNewestBuild=async function(reg){state.registration=reg||state.registration;return check();};
