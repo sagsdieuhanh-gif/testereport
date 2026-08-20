@@ -1,11 +1,11 @@
-/* E-REPORT SAGS · FLIGHT REGISTRY V2.1
+/* E-REPORT SAGS · FLIGHT REGISTRY V2.5
  * V1.84 stable core + V2 LEG/rotation architecture.
  * Event-driven: zero Registry RTDB listeners, zero polling, zero MutationObserver.
  */
 (function(root){
   "use strict";
 
-  const BUILD="V2.1-20260820-01";
+  const BUILD="V2.5-20260820-02";
   const DB_ROOT="flight_registry_v2";
   const SCHEMA=1;
   const S=v=>String(v??"").trim();
@@ -171,7 +171,9 @@
     return {legs,rotations};
   }
 
-  root.__SAGS_FLIGHT_REGISTRY_V2__={BUILD,DB_ROOT,hashId,splitFlights,reconcileRelations,normalizeLeg,manualAssignmentPlan,flightRawFor};
+  root.__SAGS_FLIGHT_REGISTRY_V2__={BUILD,DB_ROOT,hashId,splitFlights,reconcileRelations,normalizeLeg,manualAssignmentPlan,flightRawFor,
+    assignmentUnit:a=>U(a?.unit||(a?.assignmentType==="DH_OPS"?"ĐH":a?.assignmentType==="CBTT_FINAL"?"CBTT":a?.formGroup==="fsags09"?"PVHK":["fsags","fsags421","fsags551"].includes(S(a?.formGroup))?"RAMP":a?.sourceColumn||"")),
+    foldHeader,allRowKey,pairCanAutoLink,extractExtraUnitAssignments,mergeParsedRosterIntoDay};
   if(typeof document==="undefined")return;
 
   let managerDay=null;
@@ -330,14 +332,14 @@
     ensureStyles();const modal=document.getElementById("dailyRosterModal"),panel=modal?.querySelector(".drPanel");if(!panel)return;
     let box=document.getElementById("frtRosterControls");if(!box){
       box=document.createElement("div");box.id="frtRosterControls";
-      box.innerHTML=`<b>✈️ QUẢN LÝ CHUYẾN · DAILY ROSTER · V2.1</b><div class="frtMini">Không có listener Flight Registry chạy nền. Registry chỉ READ/WRITE khi AD bấm nút.</div><div class="frtRosterBtns" style="margin-top:8px"><button class="drBtn secondary" onclick="sagsFlightManagerOpen()">← QUẢN LÝ CHUYẾN</button><button class="drBtn secondary" onclick="sagsV2RegistrySync()">ĐỒNG BỘ LEG TỪ ROSTER</button><button class="drBtn" onclick="sagsV2RegistryOpen()">MỞ LEG / ROTATION</button></div><div class="frtRosterStatus" id="frtRosterStatus">V2.1 trên lõi ổn định V1.84 · không có listener Flight Registry chạy nền.</div>`;
+      box.innerHTML=`<b>✈️ QUẢN LÝ CHUYẾN · DAILY ROSTER · V2.5</b><div class="frtMini">Không có listener Flight Registry chạy nền. Registry chỉ READ/WRITE khi AD bấm nút.</div><div class="frtRosterBtns" style="margin-top:8px"><button class="drBtn secondary" onclick="sagsFlightManagerOpen()">← QUẢN LÝ CHUYẾN</button><button class="drBtn secondary" onclick="sagsV2RegistrySync()">ĐỒNG BỘ LEG TỪ ROSTER</button><button class="drBtn" onclick="sagsV2RegistryOpen()">MỞ LEG / ROTATION</button></div><div class="frtRosterStatus" id="frtRosterStatus">V2.5 trên lõi ổn định V1.84 · không có listener Flight Registry chạy nền.</div>`;
       const manage=document.getElementById("drManage")?.closest?.(".drField");if(manage?.parentNode)manage.parentNode.insertBefore(box,manage);else panel.appendChild(box);
     }
     box.style.display=isAD()?"":"none";
   }
   function ensureModal(){
     ensureStyles();if(document.getElementById("frtModal"))return;
-    const m=document.createElement("div");m.id="frtModal";m.innerHTML=`<div class="frtPanel"><div class="frtHead"><div><h3>FLIGHT LEG / AIRCRAFT ROTATION</h3><div class="frtSub"><span class="frtTestBadge">V2.1 · LEG ARCHITECTURE</span> LEG là gốc. Quan hệ ARR→DEP chỉ được tạo khi AD xác nhận.</div></div><button class="frtBtn gray" onclick="sagsV2RegistryClose()">ĐÓNG</button></div><div class="frtActions"><button class="frtBtn gray" onclick="sagsV2RegistrySync()">ĐỒNG BỘ TỪ ROSTER</button><button class="frtBtn gray" onclick="sagsV2RegistryReload()">TẢI LẠI</button><button class="frtBtn green" onclick="sagsV2RegistrySave()">LƯU QUAN HỆ</button></div><div class="frtStatus" id="frtStatus">Chưa tải dữ liệu.</div><div class="frtHelp"><b>Ví dụ:</b> ARR A → DEP C: chọn ARR A = “ĐI TIẾP CHUYẾN DEP” và chọn C. ARR B nằm lại: chọn “NẰM LẠI CXR”. DEP D dùng tàu có sẵn: chọn “TÀU ĐANG NẰM TẠI CXR” rồi nhập A/C REG. Hệ thống không bắt buộc tạo B→D.</div><div id="frtBody"></div></div>`;document.body.appendChild(m);
+    const m=document.createElement("div");m.id="frtModal";m.innerHTML=`<div class="frtPanel"><div class="frtHead"><div><h3>FLIGHT LEG / AIRCRAFT ROTATION</h3><div class="frtSub"><span class="frtTestBadge">V2.5 · LEG ARCHITECTURE</span> LEG là gốc. Quan hệ ARR→DEP chỉ được tạo khi AD xác nhận.</div></div><button class="frtBtn gray" onclick="sagsV2RegistryClose()">ĐÓNG</button></div><div class="frtActions"><button class="frtBtn gray" onclick="sagsV2RegistrySync()">ĐỒNG BỘ TỪ ROSTER</button><button class="frtBtn gray" onclick="sagsV2RegistryReload()">TẢI LẠI</button><button class="frtBtn green" onclick="sagsV2RegistrySave()">LƯU QUAN HỆ</button></div><div class="frtStatus" id="frtStatus">Chưa tải dữ liệu.</div><div class="frtHelp"><b>Ví dụ:</b> ARR A → DEP C: chọn ARR A = “ĐI TIẾP CHUYẾN DEP” và chọn C. ARR B nằm lại: chọn “NẰM LẠI CXR”. DEP D dùng tàu có sẵn: chọn “TÀU ĐANG NẰM TẠI CXR” rồi nhập A/C REG. Hệ thống không bắt buộc tạo B→D.</div><div id="frtBody"></div></div>`;document.body.appendChild(m);
     m.addEventListener("change",ev=>{if(ev.target?.matches?.("select[data-frt-relation]"))toggleConditional();});
   }
   function setManagerStatus(msg,err=false){const e=document.getElementById("frtStatus");if(e){e.textContent=msg;e.classList.toggle("err",!!err);}}
@@ -386,7 +388,7 @@
     return legs;
   }
   async function saveManager(){
-    if(!isAD())return setManagerStatus("Chỉ AD được lưu Flight Registry V2.1.",true);
+    if(!isAD())return setManagerStatus("Chỉ AD được lưu Flight Registry V2.5.",true);
     if(!managerDay)return setManagerStatus("Chưa tải dữ liệu.",true);
     try{
       const before=clone(managerDay),edited=collectEditedLegs(),result=reconcileRelations(edited);
@@ -449,7 +451,7 @@
       opDate:base.opDate,date:displayDate(base.opDate),flightRaw:base.flightRaw,flightName:base.flightName,
       arrFlight:base.arrFlight,depFlight:base.depFlight,sta:base.sta,std:base.std,acReg:base.acReg,acType:base.acType,
       route:base.route,route1:base.route1,route3:base.route3,bay:base.bay,formGroup:spec.formGroup,
-      sourceColumn:spec.sourceColumn,roleKey:spec.roleKey,sourceFile:"MANUAL_V2.1",active:true,manualOverride:true,
+      sourceColumn:spec.sourceColumn,roleKey:spec.roleKey,sourceFile:"MANUAL_V2.5",active:true,manualOverride:true,
       manualEntry:true,publishedAtMs:Date.now(),publishedBy:userName()
     };
   }
@@ -495,7 +497,7 @@
     }
     const nextMan={
       ...man,engine:ROSTER_ENGINE,schema:2,opDate:base.opDate,
-      fileName:man.fileName||"MANUAL_V2.1",columns:man.columns||["Grnd_Cor","Grnd_Ld","Pax_Supr","CBTT","ĐH"],
+      fileName:man.fileName||"MANUAL_V2.5",columns:man.columns||["Grnd_Cor","Grnd_Ld","Pax_Supr","CBTT","ĐH"],
       publishedAtMs:Date.now(),publishedBy:userName(),items:manItems
     };
     patch[`${ROSTER_MANIFEST}/${safeKey(base.opDate)}`]=nextMan;
@@ -515,7 +517,7 @@
     `;
     document.head.appendChild(s);
     const m=document.createElement("div");m.id="frtCreateModal";
-    m.innerHTML=`<div class="frtcPanel"><div class="frtcHead"><div><h3>✈️ QUẢN LÝ CHUYẾN · TẠO THỦ CÔNG</h3><div class="frtcHint"><b>V2.1 · nền V1.84.</b> Tạo/cập nhật LEG, rotation và phân công trong một lần xác nhận.</div></div><button class="frtcBtn gray" onclick="sagsFlightRegistryCreateClose()">ĐÓNG</button></div>
+    m.innerHTML=`<div class="frtcPanel"><div class="frtcHead"><div><h3>✈️ QUẢN LÝ CHUYẾN · TẠO THỦ CÔNG</h3><div class="frtcHint"><b>V2.5 · nền V1.84.</b> Tạo/cập nhật LEG, rotation và phân công trong một lần xác nhận.</div></div><button class="frtcBtn gray" onclick="sagsFlightRegistryCreateClose()">ĐÓNG</button></div>
       <div class="frtcGrid">
         <div class="frtcField"><label>NGÀY KHAI THÁC</label><input id="frtcDate" type="date"></div>
         <div class="frtcField"><label>KIỂU TẠO</label><select id="frtcMode" onchange="sagsFlightRegistryCreateModeChanged()"><option value="PAIR">CẶP ARR → DEP</option><option value="ARR_ONLY">ARR-ONLY</option><option value="DEP_ONLY">DEP-ONLY</option></select></div>
@@ -612,34 +614,178 @@
     }catch(e){createStatus("Không tạo/cập nhật được chuyến: "+S(e?.message||e),true);}
   }
 
+
+  /* ---------- V2.5 · ONE-STEP DAILY ROSTER IMPORT ---------- */
+  function foldHeader(v){
+    return U(v).normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/Đ/g,"D").replace(/[^A-Z0-9]/g,"");
+  }
+  function headerIndexByAliases(map,aliases){
+    const wanted=new Set((aliases||[]).map(foldHeader));
+    for(const [k,i] of Object.entries(map||{}))if(wanted.has(foldHeader(k)))return i;
+    return -1;
+  }
+  function cellAt(row,i){return i>=0?S(row?.[i]):"";}
+  async function parseRosterDirect(file){
+    const T=root.__SAGS_DAILY_ROSTER_TEST__;
+    if(!T)throw new Error("DAILY ROSTER engine chưa sẵn sàng.");
+    if(!file)throw new Error("Chưa chọn file DAILY ROSTER.");
+    if(/\.csv$/i.test(file.name||""))return T.parseCsvText(await file.text());
+    return T.parseXlsxBytes(new Uint8Array(await file.arrayBuffer()));
+  }
+  function directRosterPayload(r,data){
+    return {engine:ROSTER_ENGINE,schema:2,assignmentId:r.assignmentId,targetUser:r.targetUser,originalTargetUser:r.originalTargetUser||r.targetUser,
+      opDate:r.opDate,date:r.date,flightRaw:r.flightRaw,flightName:r.flightName||"",arrFlight:r.arrFlight||"",depFlight:r.depFlight||"",
+      sta:r.sta||"",std:r.std||"",acReg:r.acReg||"",acType:r.acType||"",route:r.route||"",route1:r.route1||"",route3:r.route3||"",bay:r.bay||"",
+      formGroup:r.formGroup,sourceColumn:r.sourceColumn,roleKey:r.roleKey,sourceFile:data.fileName||"",active:true,manualOverride:false,
+      publishedAtMs:Date.now(),publishedBy:userName()};
+  }
+  async function publishRosterDirect(data,allRows){
+    const byDate=new Map();
+    for(const r of data.records||[]){if(!byDate.has(r.opDate))byDate.set(r.opDate,[]);byDate.get(r.opDate).push(r);}
+    for(const r of allRows||[])if(r?.opDate&&!byDate.has(r.opDate))byDate.set(r.opDate,[]);
+    let writes=0,removes=0,overrides=0;
+    for(const [opDate,recs0] of byDate){
+      let old={};try{old=(await ref(`${ROSTER_MANIFEST}/${safeKey(opDate)}`).once("value")).val()||{};}catch(_e){}
+      const oldItems=old.items||{},nextItems={},patch={};
+      for(const baseRec of recs0){
+        const oldItem=oldItems[baseRec.assignmentId]||{};
+        const manual=oldItem.manualOverride===true&&S(oldItem.user);
+        const effectiveUser=manual?normUser(oldItem.user):baseRec.targetUser;
+        if(manual)overrides++;
+        const r={...baseRec,targetUser:effectiveUser};
+        const payload={...directRosterPayload(r,data),manualOverride:manual};
+        patch[`${ROSTER_MAIL}/${safeKey(r.targetUser)}/items/${safeKey(r.assignmentId)}`]=payload;
+        patch[`${ROSTER_REVOKE}/${safeKey(r.targetUser)}/items/${safeKey(r.assignmentId)}`]=null;
+        if(oldItem.user&&normUser(oldItem.user)!==normUser(r.targetUser)){
+          patch[`${ROSTER_MAIL}/${safeKey(oldItem.user)}/items/${safeKey(r.assignmentId)}`]=null;
+          patch[`${ROSTER_REVOKE}/${safeKey(oldItem.user)}/items/${safeKey(r.assignmentId)}`]={assignmentId:r.assignmentId,reason:"REASSIGNED",atMs:Date.now(),by:userName()};
+        }
+        nextItems[r.assignmentId]={assignmentId:r.assignmentId,user:r.targetUser,originalUser:baseRec.originalTargetUser||baseRec.targetUser,
+          flightRaw:r.flightRaw,flightName:r.flightName||"",formGroup:r.formGroup,sourceColumn:r.sourceColumn,roleKey:r.roleKey,manualOverride:manual};
+        writes++;
+      }
+      for(const [id,x] of Object.entries(oldItems)){
+        // Giữ assignment tạo tay V2; roster import không được xóa chuyến lẻ/assignment tay.
+        if(x?.manualEntry===true){nextItems[id]=x;continue;}
+        if(!nextItems[id]&&x?.user){
+          patch[`${ROSTER_MAIL}/${safeKey(x.user)}/items/${safeKey(id)}`]=null;
+          patch[`${ROSTER_REVOKE}/${safeKey(x.user)}/items/${safeKey(id)}`]={assignmentId:id,reason:"ROSTER_REMOVED",atMs:Date.now(),by:userName()};
+          removes++;
+        }
+      }
+      patch[`${ROSTER_MANIFEST}/${safeKey(opDate)}`]={...old,engine:ROSTER_ENGINE,schema:2,opDate,fileName:data.fileName||"",columns:["Grnd_Cor","Grnd_Ld","Pax_Supr"],publishedAtMs:Date.now(),publishedBy:userName(),items:nextItems};
+      await ref("").update(patch);
+    }
+    return {writes,removes,overrides,dates:byDate.size};
+  }
+  function allRowKey(r){const raw=S(r?.flightRaw||r?.flightName||"");const fs=splitFlights(raw);return fs.length?fs.join("|"):foldHeader(raw);}
+  function extractExtraUnitAssignments(parsed,allRows){
+    const T=root.__SAGS_DAILY_ROSTER_TEST__,out=[];
+    if(!T)return out;
+    let hi;try{hi=T.headerRowInfo(parsed.rows||[]);}catch(_e){return out;}
+    const map=hi.map||{},rows=parsed.rows||[],byFlight=new Map();
+    for(const r of allRows||[]){const k=allRowKey(r);if(k&&!byFlight.has(k))byFlight.set(k,r);}
+    const defs=[
+      {unit:"CBTT",type:"CBTT_FINAL",roleKey:"CBTT",label:"CBTT · FINAL",aliases:["CBTT","LOAD CONTROL","LOAD_CONTROLLER","LOAD CONTROLLER"]},
+      {unit:"ĐH",type:"DH_OPS",roleKey:"DH",label:"ĐH · KHAI THÁC",aliases:["ĐH","DH","DIEU HANH","DISPATCHER","OPS CONTROLLER"]},
+      {unit:"SÂN ĐỖ",type:"APRON_TASK",roleKey:"SAN_DO",label:"SÂN ĐỖ",aliases:["SÂN ĐỖ","SAN DO","SANDO","APRON","APRON STAFF"]},
+      {unit:"HÀNH LÝ NHÀ GA",type:"BAGGAGE_TERMINAL_TASK",roleKey:"HL_NHA_GA",label:"HÀNH LÝ NHÀ GA",aliases:["HÀNH LÝ NHÀ GA","HANH LY NHA GA","BAGGAGE TERMINAL","BAGGAGE HALL"]},
+      {unit:"KHO HÀNG",type:"CARGO_WAREHOUSE_TASK",roleKey:"KHO_HANG",label:"KHO HÀNG",aliases:["KHO HÀNG","KHO HANG","CARGO WAREHOUSE","WAREHOUSE"]}
+    ];
+    const idx=defs.map(d=>({...d,i:headerIndexByAliases(map,d.aliases)})).filter(d=>d.i>=0);
+    if(!idx.length)return out;
+    const flightIdx=headerIndexByAliases(map,["FlightNo","FLIGHT NO","FLIGHT"]);
+    for(let ri=hi.row+1;ri<rows.length;ri++){
+      const row=rows[ri]||[],raw=cellAt(row,flightIdx),base=byFlight.get((splitFlights(raw).length?splitFlights(raw).join("|"):foldHeader(raw)));
+      if(!raw||!base)continue;
+      for(const d of idx)for(const user of usersFromInput(cellAt(row,d.i))){out.push({opDate:base.opDate,flightRaw:base.flightRaw,flightName:base.flightName,user,unit:d.unit,assignmentType:d.type,roleKey:d.roleKey,label:d.label});}
+    }
+    return out;
+  }
+  function pairCanAutoLink(day,arrId,depId){
+    for(const l of Object.values(day.legs||{})){
+      if(!l)continue;
+      if(l.direction==="ARR"&&l.legId!==arrId&&l.arrDisposition==="TO_DEPARTURE"&&S(l.onwardLegId)===depId)return false;
+      if(l.direction==="DEP"&&l.legId!==depId&&l.depSourceType==="ARRIVAL_LEG"&&S(l.sourceLegId)===arrId)return false;
+    }
+    return true;
+  }
+  function mergeParsedRosterIntoDay(day,rows,extras){
+    day.legs=day.legs||{};day.assignments=day.assignments||{};const groupLegs=new Map();let review=0;
+    for(const rec of rows||[]){
+      let arr=U(rec.arrFlight),dep=U(rec.depFlight);const flights=splitFlights(rec.flightName||rec.flightRaw||"");
+      if(!arr&&!dep&&flights.length>=2){arr=flights[0];dep=flights[1];}
+      if(!arr&&!dep&&flights.length===1){const dir=classifySingleLeg(rec,flights[0]);if(dir==="ARR")arr=flights[0];else if(dir==="DEP")dep=flights[0];}
+      const ids=[];let a=null,d=null;
+      if(arr){a=legFromCandidate(day,rec,"ARR",arr);day.legs[a.legId]=a;ids.push(a.legId);}
+      if(dep){const existed=findExistingLeg(day.legs,"DEP",dep);d=legFromCandidate(day,rec,"DEP",dep);if(!arr&&!existed&&U(rec.acReg)){d.depSourceType="ON_GROUND";d.onGroundReg=U(rec.acReg);}day.legs[d.legId]=d;ids.push(d.legId);}
+      if(!arr&&!dep&&flights[0]){const x=legFromCandidate(day,rec,"UNKNOWN",flights[0]);day.legs[x.legId]=x;ids.push(x.legId);}
+      if(a&&d){
+        const userLocked=["REMAIN","NIGHT_STOP"].includes(U(a.arrDisposition))||U(d.depSourceType)==="ON_GROUND";
+        if(!userLocked&&pairCanAutoLink(day,a.legId,d.legId)){
+          a.arrDisposition="TO_DEPARTURE";a.onwardLegId=d.legId;d.depSourceType="ARRIVAL_LEG";d.sourceLegId=a.legId;d.onGroundReg="";
+        }else if(!userLocked){a.needsReview=true;d.needsReview=true;review++;}
+        day.legs[a.legId]=a;day.legs[d.legId]=d;
+      }
+      groupLegs.set(allRowKey(rec),ids);
+    }
+    try{const rel=reconcileRelations(day.legs);day.legs=rel.legs;day.rotations=rel.rotations;}catch(e){review++;day.rotationReview={required:true,message:S(e?.message||e),atMs:Date.now()};}
+    // Các cột đơn vị phụ trợ (nếu có đúng header) chỉ tạo assignment; không tự sinh form giả.
+    for(const x of extras||[]){
+      if(S(x.opDate)!==S(day.opDate))continue;const ids=groupLegs.get(allRowKey(x))||[];
+      const id="RAU_"+hashId([x.opDate,x.flightRaw,x.roleKey,x.user].join("|"));
+      day.assignments[id]={assignmentId:id,active:true,user:x.user,originalUser:x.user,formGroup:"UNIT_TASK",sourceColumn:x.unit,roleKey:x.roleKey,
+        assignmentType:x.assignmentType,unit:x.unit,label:x.label,registryOnly:true,source:"ROSTER_UNIT",flightRaw:x.flightRaw,flightName:x.flightName||x.flightRaw,legIds:ids,updatedAtMs:Date.now()};
+    }
+    return {day,review};
+  }
+  async function importDailyRosterOneStep(file){
+    if(!isAD())throw new Error("Chỉ AD được nhập DAILY ROSTER.");
+    const T=root.__SAGS_DAILY_ROSTER_TEST__,parsed=await parseRosterDirect(file),fixed=T.rosterRecords(parsed),all=T.allFlightRows(parsed),allRows=all.records||[];
+    if(!allRows.length)throw new Error("Không tìm thấy chuyến hợp lệ trong DAILY ROSTER.");
+    const data={...fixed,sheetName:parsed.sheetName,fileName:file.name||"DAILY_ROSTER"};
+    const pub=await publishRosterDirect(data,allRows),extras=extractExtraUnitAssignments(parsed,allRows),dates=[...new Set(allRows.map(r=>r.opDate).filter(Boolean))];
+    let totalLegs=0,totalAssignments=0,totalReview=0;
+    for(const date of dates){
+      let day;try{day=await syncFromManifest(date,"V2.5_ONE_STEP_IMPORT");}catch(_e){day=await readDay(date);}
+      const merged=mergeParsedRosterIntoDay(day,allRows.filter(r=>r.opDate===date),extras);day=merged.day;totalReview+=merged.review;
+      day.revision=Number(day.revision||0)+1;day.updatedAtMs=Date.now();day.updatedBy=userName();day.registryBuild=BUILD;
+      addEvent(day,"ROSTER_ONE_STEP_IMPORTED",{fileName:file.name||"",legCount:Object.keys(day.legs||{}).length,assignmentCount:Object.values(day.assignments||{}).filter(a=>a?.active!==false).length,reviewCount:merged.review});
+      await ref(`${DB_ROOT}/days/${safeKey(date)}`).set(day);totalLegs+=Object.keys(day.legs||{}).length;totalAssignments+=Object.values(day.assignments||{}).filter(a=>a?.active!==false).length;
+      managerDay=day;
+    }
+    return {fileName:file.name||"",dates,rows:allRows.length,legs:totalLegs,assignments:totalAssignments,forms:pub.writes,removed:pub.removes,overrides:pub.overrides,review:totalReview};
+  }
+  async function managerFileChanged(input){
+    const file=input?.files?.[0];if(!file)return;input.disabled=true;const st=document.getElementById("fm22Status");
+    try{
+      if(st){st.className="fm22Status";st.textContent=`Đang đọc ${file.name} và tự tạo/cập nhật chuyến…`;}
+      const r=await importDailyRosterOneStep(file);const d=r.dates[0]||todayISO();const di=document.getElementById("fm21Date");if(di)di.value=d;
+      if(st){st.className="fm22Status ok";st.textContent=`✓ ĐÃ XỬ LÝ ${r.fileName}\n${r.rows} dòng chuyến · ${r.legs} LEG · ${r.assignments} assignment · ${r.forms} biểu mẫu phân công${r.review?`\n⚠ ${r.review} trường hợp rotation cần AD kiểm tra.`:"\nRotation rõ ràng đã được tự ghép; trường hợp mơ hồ giữ để kiểm tra."}`;}
+    }catch(e){if(st){st.className="fm22Status err";st.textContent="Không nhập được DAILY ROSTER: "+S(e?.message||e);}else alert(S(e?.message||e));}
+    finally{input.disabled=false;input.value="";}
+  }
+
   function ensureUnifiedHub(){
     ensureStyles();
     if(!document.getElementById("fm21Style")){
-      const st=document.createElement("style");st.id="fm21Style";
-      st.textContent=`
+      const st=document.createElement("style");st.id="fm21Style";st.textContent=`
         #roleBtnFlightCreateV2,#roleBtnDailyRoster{display:none!important}
         #roleBtnFlightManageV21{display:none!important;background:#075c9c!important;color:#fff!important}
         body.role-admin #roleBtnFlightManageV21{display:inline-flex!important;align-items:center;justify-content:center}
         #frtHubModal{display:none;position:fixed;inset:0;z-index:17080;background:rgba(0,0,0,.56);align-items:center;justify-content:center;padding:12px;box-sizing:border-box;font-family:Arial,sans-serif}
-        #frtHubModal.show{display:flex}.fm21Panel{width:min(96vw,820px);max-height:92vh;overflow:auto;background:#fff;border-radius:16px;padding:15px;box-shadow:0 18px 46px rgba(0,0,0,.3)}
-        .fm21Head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.fm21Head h3{margin:0;color:#0b4f91}.fm21Sub{font-size:12px;color:#5d6d79;line-height:1.45;margin:5px 0 12px}.fm21Date{border:1px solid #d8e2ea;border-radius:11px;padding:10px;background:#f7fafc}.fm21Date label{font-size:11px;font-weight:900;color:#466176;display:block;margin-bottom:4px}.fm21Date input{padding:9px;border:1px solid #cbd7e0;border-radius:8px;width:min(220px,100%);box-sizing:border-box}.fm21Grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.fm21Card{border:1px solid #d8e2ea;border-radius:13px;padding:13px;background:#fbfcfd;cursor:pointer;text-align:left}.fm21Card:hover{background:#f0f7fc}.fm21Card b{display:block;color:#174b72;margin-bottom:5px}.fm21Card span{font-size:12px;color:#60717e;line-height:1.4}.fm21Close{border:0;border-radius:9px;padding:9px 12px;font-weight:800;background:#eef3f7;color:#31475a}.fm21Note{margin-top:12px;padding:9px;border-radius:9px;background:#eef6ff;color:#345;font-size:12px;line-height:1.45}
-        @media(max-width:650px){.fm21Grid{grid-template-columns:1fr}}
-      `;
-      document.head.appendChild(st);
+        #frtHubModal.show{display:flex}.fm21Panel{width:min(96vw,760px);max-height:92vh;overflow:auto;background:#fff;border-radius:16px;padding:15px;box-shadow:0 18px 46px rgba(0,0,0,.3)}
+        .fm21Head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.fm21Head h3{margin:0;color:#0b4f91}.fm21Sub{font-size:12px;color:#5d6d79;line-height:1.45;margin:5px 0 12px}.fm21Date{border:1px solid #d8e2ea;border-radius:11px;padding:10px;background:#f7fafc}.fm21Date label{font-size:11px;font-weight:900;color:#466176;display:block;margin-bottom:4px}.fm21Date input{padding:9px;border:1px solid #cbd7e0;border-radius:8px;width:min(220px,100%);box-sizing:border-box}
+        .fm22Import{margin-top:12px;border:2px dashed #9fc0d8;border-radius:14px;padding:18px;text-align:center;background:#f7fbff}.fm22ImportBtn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;border:0;border-radius:11px;padding:11px 17px;background:#0b67b2;color:#fff;font-weight:900;cursor:pointer}.fm22Status{margin-top:10px;padding:10px;border-radius:10px;background:#eef6ff;color:#345;font-size:12px;line-height:1.45;white-space:pre-wrap;text-align:left}.fm22Status.ok{background:#eaf7ef;color:#176b32}.fm22Status.err{background:#fff0f0;color:#9b1c1c}.fm22Bottom{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.fm22SmallBtn{border:1px solid #cbd7e0;border-radius:9px;padding:9px 11px;background:#fff;color:#31546f;font-weight:800;cursor:pointer}.fm21Close{border:0;border-radius:9px;padding:9px 12px;font-weight:800;background:#eef3f7;color:#31475a}
+      `;document.head.appendChild(st);
     }
     if(!document.getElementById("frtHubModal")){
       const m=document.createElement("div");m.id="frtHubModal";
-      m.innerHTML=`<div class="fm21Panel"><div class="fm21Head"><div><h3>✈️ QUẢN LÝ CHUYẾN</h3><div class="fm21Sub">V2.1 · Một nơi duy nhất cho DAILY ROSTER, tạo thủ công, phân công và rotation.</div></div><button class="fm21Close" onclick="sagsFlightManagerClose()">ĐÓNG</button></div>
-        <div class="fm21Date"><label>NGÀY KHAI THÁC</label><input id="fm21Date" type="date"></div>
-        <div class="fm21Grid">
-          <button class="fm21Card" onclick="sagsFlightManagerOpenRoster()"><b>📥 NHẬP DAILY ROSTER</b><span>Đọc XLSX/CSV, xem trước, TẠO & PHÂN CÔNG. Registry tự đồng bộ sau khi AD xác nhận.</span></button>
-          <button class="fm21Card" onclick="sagsFlightRegistryCreateOpen()"><b>➕ TẠO / CẬP NHẬT THỦ CÔNG</b><span>Tạo ARR→DEP, ARR-only, DEP-only; nhập nhân sự và sinh assignment/biểu mẫu liên quan.</span></button>
-          <button class="fm21Card" onclick="sagsFlightManagerOpenRegistry()"><b>🔄 DANH SÁCH LEG / ROTATION</b><span>Kiểm tra ARR→DEP, tàu nằm sân, NẰM LẠI, NIGHT STOP và sửa quan hệ bằng xác nhận AD.</span></button>
-          <button class="fm21Card" onclick="sagsFlightManagerOpenAssignments()"><b>👥 PHÂN CÔNG ROSTER</b><span>Mở danh sách phân công của ngày để chuyển người hoặc trả về người theo roster hiện có.</span></button>
-        </div>
-        <div class="fm21Note"><b>Quy tắc:</b> chỉ có 01 nút QUẢN LÝ CHUYẾN trên màn AD. DAILY ROSTER không còn là chức năng độc lập trên thanh công cụ.</div></div>`;
-      document.body.appendChild(m);
-      const d=document.getElementById("fm21Date");if(d)d.value=todayISO();
+      m.innerHTML=`<div class="fm21Panel"><div class="fm21Head"><div><h3>✈️ QUẢN LÝ CHUYẾN</h3><div class="fm21Sub">V2.5 · Chọn DAILY ROSTER là hệ thống tự tạo/cập nhật chuyến, rotation và phân công. Không còn bước xem trước → TẠO & PHÂN CÔNG.</div></div><button class="fm21Close" onclick="sagsFlightManagerClose()">ĐÓNG</button></div>
+        <div class="fm21Date"><label>NGÀY ĐANG XEM</label><input id="fm21Date" type="date"></div>
+        <div class="fm22Import"><div style="font-weight:900;color:#174b72;margin-bottom:8px">DAILY ROSTER</div><button class="fm22ImportBtn" onclick="document.getElementById('fm22RosterFile').click()">📋 CHỌN FILE XLSX / CSV</button><input id="fm22RosterFile" type="file" accept=".xlsx,.xlsm,.csv" style="display:none" onchange="sagsFlightManagerImportFile(this)"><div class="fm22Status" id="fm22Status">Chọn file DAILY ROSTER. Sau khi chọn, hệ thống tự tạo/cập nhật LEG và phân công ngay.</div></div>
+        <div class="fm22Bottom"><button class="fm22SmallBtn" onclick="sagsFlightManagerOpenRegistry()">DANH SÁCH CHUYẾN / ROTATION</button><button class="fm22SmallBtn" onclick="sagsFlightRegistryCreateOpen()">+ THÊM CHUYẾN LẺ</button></div></div>`;
+      document.body.appendChild(m);const d=document.getElementById("fm21Date");if(d)d.value=todayISO();
     }
   }
   function hubDate(){return S(document.getElementById("fm21Date")?.value)||todayISO();}
@@ -685,9 +831,9 @@
   function applyV2Display(){
     try{
       document.documentElement.setAttribute("data-sags-build",BUILD);
-      document.documentElement.setAttribute("data-app-version","V2.1 AI");
-      const marker=document.getElementById("buildMarker");if(marker)marker.textContent="V2.1 AI";
-      const hint=document.getElementById("statusHint");if(hint&&!/^Lỗi khởi tạo:/i.test(S(hint.textContent)))hint.textContent="V2.1 AI · 20/08/26";
+      document.documentElement.setAttribute("data-app-version","V2.5 AI");
+      const marker=document.getElementById("buildMarker");if(marker)marker.textContent="V2.5 AI";
+      const hint=document.getElementById("statusHint");if(hint&&!/^Lỗi khởi tạo:/i.test(S(hint.textContent)))hint.textContent="V2.5 AI · 20/08/26";
     }catch(_e){}
   }
   function ensureV2UpdateModal(){
@@ -748,7 +894,7 @@
         return;
       }
       ensureV2UpdateModal();const m=document.getElementById("v2UpdateModal"),txt=document.getElementById("v2UpdateText"),btn=document.getElementById("v2UpdateNow");
-      if(txt)txt.textContent=`Đang dùng V2.1 AI · Có ${info.display||info.build}. Chỉ cập nhật sau khi bạn bấm LƯU & CẬP NHẬT.`;
+      if(txt)txt.textContent=`Đang dùng V2.5 AI · Có ${info.display||info.build}. Chỉ cập nhật sau khi bạn bấm LƯU & CẬP NHẬT.`;
       if(btn){btn.disabled=false;btn.textContent="LƯU & CẬP NHẬT";btn.onclick=()=>v2ApplyUpdate(info.build);}
       if(m)m.style.display="flex";
     }catch(e){console.info("[SAGS V2 update]",e?.message||e);}
@@ -761,6 +907,8 @@
     void v2CheckUpdate();
   }
 
+  root.sagsV2ImportDailyRoster=importDailyRosterOneStep;
+  root.sagsFlightManagerImportFile=managerFileChanged;
   root.sagsFlightManagerOpen=managerOpen;
   root.sagsFlightManagerClose=managerClose;
   root.sagsFlightManagerOpenRoster=openRosterFromHub;
@@ -779,7 +927,7 @@
   function patchRoster(){
     if(typeof root.openDailyRosterManager==="function"&&!root.openDailyRosterManager.__frtWrapped){
       baseOpenRoster=root.openDailyRosterManager;
-      const wrapped=function(){const r=baseOpenRoster.apply(this,arguments);try{ensureRosterControls();}catch(e){console.warn("Flight Registry V2.1 controls",e);}return r;};
+      const wrapped=function(){const r=baseOpenRoster.apply(this,arguments);try{ensureRosterControls();}catch(e){console.warn("Flight Registry V2.5 controls",e);}return r;};
       wrapped.__frtWrapped=true;root.openDailyRosterManager=wrapped;
     }
     if(typeof root.dailyRosterPublish==="function"&&!root.dailyRosterPublish.__frtWrapped){
@@ -789,8 +937,8 @@
         try{
           ensureRosterControls();
           const ok=/^✓/m.test(S(document.getElementById("drStatus")?.textContent));
-          if(isAD()&&ok){const date=dateFromRosterUI();statusMessage("Roster đã publish. Đang tạo/cập nhật LEG…");const day=await syncFromManifest(date,"ROSTER_PUBLISH");statusMessage(`✓ Registry: ${Object.keys(day.legs||{}).length} LEG · ${Object.values(day.assignments||{}).filter(x=>x?.active!==false).length} assignment.`);appendRosterStatus(`FLIGHT REGISTRY V2.1: ${Object.keys(day.legs||{}).length} LEG đã được tạo/cập nhật. Quan hệ tàu bay chờ AD xác nhận.`);}
-        }catch(e){statusMessage("Roster đã phân công nhưng Flight Registry V2.1 chưa đồng bộ: "+S(e?.message||e),true);}
+          if(isAD()&&ok){const date=dateFromRosterUI();statusMessage("Roster đã publish. Đang tạo/cập nhật LEG…");const day=await syncFromManifest(date,"ROSTER_PUBLISH");statusMessage(`✓ Registry: ${Object.keys(day.legs||{}).length} LEG · ${Object.values(day.assignments||{}).filter(x=>x?.active!==false).length} assignment.`);appendRosterStatus(`FLIGHT REGISTRY V2.5: ${Object.keys(day.legs||{}).length} LEG đã được tạo/cập nhật. Quan hệ tàu bay chờ AD xác nhận.`);}
+        }catch(e){statusMessage("Roster đã phân công nhưng Flight Registry V2.5 chưa đồng bộ: "+S(e?.message||e),true);}
         return r;
       };
       wrapped.__frtWrapped=true;root.dailyRosterPublish=wrapped;
@@ -799,7 +947,6 @@
 
   // One-time event wiring only. No polling/MutationObserver/background Registry listener.
   ensureAdEntryButton();
-  patchRoster();
   installV2UpdateRuntime();
-  console.info(`[SAGS Flight Registry V2.1] ${BUILD} ready · no background registry listeners`);
+  console.info(`[SAGS Flight Registry V2.5] ${BUILD} ready · no background registry listeners`);
 })(typeof window!=="undefined"?window:globalThis);

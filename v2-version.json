@@ -1,7 +1,6 @@
 {
-  "version": "V2.1",
-  "label": "V2.1 AI",
-  "build": "V2.1-20260820-01",
-  "displayVersion": "V2.1 AI",
-  "core": "V1.84-20260819-01"
+  "version": "V2.5",
+  "label": "V2.5 AI",
+  "build": "V2.5-20260820-02",
+  "displayVersion": "V2.5 AI"
 }

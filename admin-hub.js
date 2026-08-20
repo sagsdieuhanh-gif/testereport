@@ -1,42 +1,54 @@
-/* E-REPORT SAGS V2.5 · Compact Admin Management Hub */
-(function(root){'use strict';
- const S=v=>String(v??'').trim(), U=v=>S(v).toUpperCase();
- function session(){try{return root.__sagsGetSession?.()||{}}catch(_){return {}}}
- function isAD(){const x=session();return U(x.role||x.profile?.role)==='AD'}
- const groups=[
-  {key:'ops',title:'✈ VẬN HÀNH CHUYẾN',sub:'Tạo chuyến, theo dõi chuyến và cấu hình khai thác',items:[
-    ['roleBtnRosterFlights','✈ DANH SÁCH CHUYẾN HÔM NAY','Mở hồ sơ chuyến và phân công/bàn giao'],
-    ['roleBtnActivity','📊 TIẾN ĐỘ','Theo dõi các chuyến đang khai thác'],
-    ['roleBtnAcLimits','⚠ A/C LIMITS','Hạn chế tàu bay / cảnh báo khai thác'],
-    ['roleBtnFleet','🛫 FLEET TÀU BAY','A/C REG · A/C TYPE · CONFIG']
-  ]},
-  {key:'people',title:'👥 NHÂN SỰ & CẤU HÌNH',sub:'Tài khoản, quyền và cấu hình chức năng',items:[
-    ['roleBtnAccounts','👤 TÀI KHOẢN & PHÂN QUYỀN','Tạo/sửa tài khoản, vai trò và quyền'],
-    ['roleBtnAdminBuilder','🧩 ADMIN BUILDER','Biểu mẫu động, nút, cảnh báo và cấu hình']
-  ]},
-  {key:'monitor',title:'🛡 GIÁM SÁT & HỒ SƠ',sub:'Nhật ký, tài nguyên hệ thống và lưu trữ',items:[
-    ['roleBtnAudit','🧾 NHẬT KÝ / AUDIT','Các mốc FINAL, KẾT SỔ và UPDATE quan trọng'],
-    ['roleBtnFirebaseUsage','🔥 FIREBASE USAGE','Theo dõi mức sử dụng Firebase'],
-    ['roleBtnArchive','🗄 HỒ SƠ','Tra cứu hồ sơ lưu trữ']
-  ]}
- ];
- const hideIds=['roleBtnDailyRoster','roleBtnRosterFlights','roleBtnActivity','roleBtnAcLimits','roleBtnFleet','roleBtnAccounts','roleBtnAdminBuilder','roleBtnAudit','roleBtnFirebaseUsage','roleBtnArchive'];
- function ensure(){
-  if(!document.getElementById('adminHubStyle')){const st=document.createElement('style');st.id='adminHubStyle';st.textContent=`body.sagsAdminHub ${hideIds.map(x=>'#'+x).join(',body.sagsAdminHub ')}{display:none!important}#adminHubModal{display:none;position:fixed;inset:0;z-index:17600;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:12px;font-family:Arial,sans-serif}#adminHubModal.show{display:flex}.ahPanel{width:min(95vw,760px);max-height:92vh;overflow:auto;background:#fff;border-radius:16px;padding:14px;box-shadow:0 18px 48px rgba(0,0,0,.35)}.ahHead{display:flex;align-items:center;justify-content:space-between;gap:10px}.ahHead h3{margin:0;color:#0b4f91}.ahClose,.ahGroupBtn,.ahBack,.ahItem,.ahRosterBtn{border:0;border-radius:11px;font-weight:900;cursor:pointer}.ahClose,.ahBack{padding:8px 11px;background:#eef2f6;color:#334}.ahGroups{display:grid;grid-template-columns:1fr;gap:10px;margin-top:14px}.ahGroupBtn{min-height:78px;padding:14px;text-align:left;background:#eef6ff;color:#164e7a;border:1px solid #c9def0;font-size:18px}.ahGroupBtn small,.ahItem small{display:block;font-size:12px;font-weight:700;color:#657789;margin-top:5px}.ahSectionHead{display:flex;align-items:center;gap:8px;margin:14px 0 8px}.ahSectionHead h4{margin:0;color:#294b66;font-size:17px}.ahGrid{display:grid;grid-template-columns:1fr;gap:8px}.ahItem{min-height:58px;padding:10px 12px;text-align:left;background:#f7fbff;color:#164e7a;border:1px solid #d3e3ef;font-size:15px}.ahRosterBox{padding:14px;border-radius:14px;background:#eaf7ef;border:2px solid #9bcfab;margin:10px 0 14px}.ahRosterTitle{font-size:19px;font-weight:900;color:#176b32;margin-bottom:5px}.ahRosterSub{font-size:12px;font-weight:700;color:#526b59;margin-bottom:10px}.ahRosterFile{display:block;width:100%;box-sizing:border-box;padding:10px;background:#fff;border:1px solid #b8c9bd;border-radius:10px;margin-bottom:9px}.ahRosterBtn{width:100%;padding:14px;background:#18783a;color:white;font-size:17px}.ahRosterBtn:disabled{opacity:.45;cursor:not-allowed}.ahSub{font-size:12px;color:#667788;margin-top:4px}`;document.head.appendChild(st)}
-  if(!document.getElementById('adminHubModal')){const m=document.createElement('div');m.id='adminHubModal';m.innerHTML=`<div class="ahPanel"><div class="ahHead"><div><h3>⚙ QUẢN LÝ ADMIN</h3><div class="ahSub">Các chức năng cùng mục đích được gom theo nhóm.</div></div><button class="ahClose" onclick="adminHubClose()">ĐÓNG</button></div><div id="adminHubBody"></div></div>`;document.body.appendChild(m)}
-  const bar=document.querySelector('.toolbar-row.main-actions');if(bar&&!document.getElementById('roleBtnAdminHub')){const b=document.createElement('button');b.id='roleBtnAdminHub';b.textContent='⚙ QUẢN LÝ';b.onclick=()=>root.adminHubOpen();const anchor=document.getElementById('roleBtnAccounts');if(anchor?.parentNode)anchor.parentNode.insertBefore(b,anchor);else bar.appendChild(b)}
- }
- function renderHome(){const host=document.getElementById('adminHubBody');if(!host)return;host.innerHTML=`<div class="ahGroups">${groups.map(g=>`<button class="ahGroupBtn" onclick="adminHubOpenGroup('${g.key}')">${g.title}<small>${g.sub}</small></button>`).join('')}</div>`}
- root.adminHubOpenGroup=function(key){const g=groups.find(x=>x.key===key),host=document.getElementById('adminHubBody');if(!g||!host)return;const roster=key==='ops'?`<div class="ahRosterBox"><div class="ahRosterTitle">📋 DAILY ROSTER → ✈ TẠO CHUYẾN</div><div class="ahRosterSub">1. Chọn file DAILY ROSTER · 2. Đọc/kiểm tra · 3. Nút ✈ TẠO CHUYẾN sẽ xuất hiện khi roster hợp lệ.</div><input class="ahRosterFile" id="adminRosterFile" type="file" accept=".xlsx,.xlsm,.csv" onchange="adminHubRosterPicked(this)"><button class="ahRosterBtn" id="adminRosterOpenBtn" onclick="adminHubOpenRoster()">MỞ DAILY ROSTER / TẠO CHUYẾN</button></div>`:'';host.innerHTML=`<div class="ahSectionHead"><button class="ahBack" onclick="adminHubHome()">← QUAY LẠI</button><h4>${g.title}</h4></div>${roster}<div class="ahGrid">${g.items.map(([id,label,note])=>{const exists=!!document.getElementById(id);return `<button class="ahItem${exists?'':' missing'}" ${exists?`onclick="adminHubRun('${id}')"`:'disabled'}>${label}<small>${note}</small></button>`}).join('')}</div>`}
- root.adminHubRosterPicked=function(inp){const f=inp?.files?.[0];if(f)root.dailyRosterLoadFile?.(f)};
- root.adminHubOpenRoster=function(){root.adminHubClose();root.openDailyRosterManager?.()};
- root.adminHubHome=renderHome;
- root.adminHubRun=function(id){const b=document.getElementById(id);if(!b)return alert('Chức năng này chưa sẵn sàng.');root.adminHubClose();const old=b.style.display;b.style.setProperty('display','inline-flex','important');try{b.click()}finally{setTimeout(()=>{b.style.display=old||'';sync()},0)}};
- root.adminHubOpen=function(){ensure();if(!isAD())return;renderHome();document.getElementById('adminHubModal')?.classList.add('show')};
- root.adminHubClose=function(){document.getElementById('adminHubModal')?.classList.remove('show')};
- function sync(){ensure();const ad=isAD();document.body.classList.toggle('sagsAdminHub',ad);const b=document.getElementById('roleBtnAdminHub');if(b)b.style.display=ad?'inline-flex':'none'}
- const base=root.applyRoleUI;if(typeof base==='function')root.applyRoleUI=function(){const r=base.apply(this,arguments);setTimeout(sync,0);return r};
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(sync,50),{once:true});else setTimeout(sync,50);
- setInterval(sync,1500);
- root.__ADMIN_HUB_HDSD='AD: ⚙ QUẢN LÝ → ✈ VẬN HÀNH CHUYẾN. Khu DAILY ROSTER hiển thị trực tiếp ô chọn file; chọn file sẽ mở màn kiểm tra roster. Khi roster hợp lệ mới hiện ✈ TẠO CHUYẾN.';
+/* E-REPORT SAGS · ADMIN HUB V2.5
+ * One AD entry: operations / people-config / monitoring-dossier.
+ * DAILY ROSTER is one-step: select file => create/update flights + assignments.
+ * No MutationObserver / setInterval / polling / RTDB listeners.
+ */
+(function(root){
+  'use strict';
+  const BUILD='V2.5-20260820-02';
+  const S=v=>String(v??'').trim();
+  const esc=v=>S(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  function isAD(){
+    try{const x=root.__sagsGetSession?.();if(x?.isAD||S(x?.role).toUpperCase()==='AD')return true;}catch(_e){}
+    try{if(document?.body?.classList?.contains('role-admin'))return true;}catch(_e){}
+    try{if(typeof currentRole!=='undefined'&&S(currentRole).toUpperCase()==='AD')return true;}catch(_e){}
+    return false;
+  }
+  function ensureStyle(){
+    if(document.getElementById('ah25Style'))return;
+    const st=document.createElement('style');st.id='ah25Style';st.textContent=`
+      #roleBtnAdminHubV25{display:none!important;background:#123f6b!important;color:#fff!important}
+      body.role-admin #roleBtnAdminHubV25{display:inline-flex!important;align-items:center;justify-content:center}
+      body.role-admin #roleBtnFlightManageV21,body.role-admin #roleBtnDailyRoster,body.role-admin #roleBtnFlightCreateV2{display:none!important}
+      #ah25Modal{display:none;position:fixed;inset:0;z-index:18150;background:rgba(0,0,0,.56);align-items:center;justify-content:center;padding:12px;box-sizing:border-box;font-family:Arial,sans-serif}
+      #ah25Modal.show{display:flex}.ah25Panel{width:min(96vw,900px);max-height:93vh;overflow:auto;background:#f7fafc;border-radius:16px;padding:15px;box-shadow:0 18px 48px rgba(0,0,0,.32)}
+      .ah25Head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.ah25Head h3{margin:0;color:#0b4f91}.ah25Sub{font-size:12px;color:#607384;line-height:1.45;margin-top:5px}.ah25Close,.ah25Btn{border:0;border-radius:9px;padding:10px 12px;font-weight:900;cursor:pointer}.ah25Close{background:#e9eef2;color:#345}.ah25Btn{background:#0b67b2;color:#fff}.ah25Btn.gray{background:#e8eef4;color:#28465f}.ah25Btn.green{background:#177245}.ah25Btn.small{padding:8px 10px;font-size:12px}
+      .ah25Grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}.ah25Card{background:#fff;border:1px solid #d5e0e9;border-radius:13px;padding:12px}.ah25Card h4{margin:0 0 6px;color:#174b72}.ah25Meta{font-size:12px;color:#647889;line-height:1.4}.ah25Section{display:none;margin-top:12px;background:#fff;border:1px solid #d5e0e9;border-radius:13px;padding:12px}.ah25Section.show{display:block}.ah25Actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+      .ah25Roster{border:2px dashed #9fc0d8;border-radius:13px;padding:16px;text-align:center;background:#f7fbff;margin-top:8px}.ah25Status{margin-top:9px;padding:9px 10px;border-radius:9px;background:#eef6ff;color:#345;font-size:12px;white-space:pre-wrap;text-align:left;line-height:1.45}.ah25Status.ok{background:#eaf7ef;color:#176b32}.ah25Status.err{background:#fff0f0;color:#9b1c1c}
+      @media(max-width:720px){.ah25Grid{grid-template-columns:1fr}.ah25Panel{padding:11px}.ah25Btn{flex:1}}
+    `;document.head.appendChild(st);
+  }
+  function ensureUI(){
+    ensureStyle();
+    if(!document.getElementById('ah25Modal')){
+      const m=document.createElement('div');m.id='ah25Modal';m.innerHTML=`<div class="ah25Panel"><div class="ah25Head"><div><h3>⚙ QUẢN LÝ · V2.5</h3><div class="ah25Sub">Một nơi quản trị chung. VẬN HÀNH CHUYẾN dùng DAILY ROSTER một bước; chọn file là tự tạo/cập nhật chuyến và phân công.</div></div><button class="ah25Close" onclick="sagsAdminHubClose()">ĐÓNG</button></div>
+      <div class="ah25Grid"><div class="ah25Card"><h4>✈ VẬN HÀNH CHUYẾN</h4><div class="ah25Meta">DAILY ROSTER · chuyến hôm nay · rotation · chuyến lẻ.</div><div class="ah25Actions"><button class="ah25Btn" onclick="sagsAdminHubSection('OPS')">MỞ</button></div></div><div class="ah25Card"><h4>👥 NHÂN SỰ & CẤU HÌNH</h4><div class="ah25Meta">Tài khoản · quyền · cấu hình nghiệp vụ hiện có.</div><div class="ah25Actions"><button class="ah25Btn" onclick="sagsAdminHubSection('PEOPLE')">MỞ</button></div></div><div class="ah25Card"><h4>🛡 GIÁM SÁT & HỒ SƠ</h4><div class="ah25Meta">Hồ sơ chuyến · nhật ký · phê duyệt quyền xem.</div><div class="ah25Actions"><button class="ah25Btn" onclick="sagsAdminHubSection('MON')">MỞ</button></div></div></div>
+      <div id="ah25OPS" class="ah25Section"><h4>✈ VẬN HÀNH CHUYẾN</h4><div class="ah25Roster"><b>DAILY ROSTER</b><div class="ah25Meta" style="margin:6px 0 10px">Chọn .xlsx / .xlsm / .csv → hệ thống tự tạo/cập nhật LEG, rotation, assignment và biểu mẫu liên quan.</div><button class="ah25Btn green" onclick="document.getElementById('ah25RosterFile').click()">📋 CHỌN FILE DAILY ROSTER</button><input id="ah25RosterFile" type="file" accept=".xlsx,.xlsm,.csv" style="display:none" onchange="sagsAdminHubRoster(this)"><div id="ah25RosterStatus" class="ah25Status">Chưa chọn file.</div></div><div class="ah25Actions"><button class="ah25Btn gray" onclick="sagsV25OpenAdminFlights()">DANH SÁCH / ROTATION</button><button class="ah25Btn gray" onclick="sagsFlightRegistryCreateOpen()">+ THÊM CHUYẾN LẺ</button><button class="ah25Btn gray" onclick="sagsV25OpenMyFlights()">HỒ SƠ CHUYẾN</button></div></div>
+      <div id="ah25PEOPLE" class="ah25Section"><h4>👥 NHÂN SỰ & CẤU HÌNH</h4><div class="ah25Meta">Mở nhanh các chức năng quản trị sẵn có của E-Report.</div><div class="ah25Actions"><button class="ah25Btn gray" onclick="sagsAdminHubLegacy('ACCOUNT')">QUẢN LÝ TÀI KHOẢN</button><button class="ah25Btn gray" onclick="sagsAdminHubLegacy('PERMISSION')">PHÂN QUYỀN</button><button class="ah25Btn gray" onclick="sagsAdminHubLegacy('BUILDER')">CẤU HÌNH / BUILDER</button></div></div>
+      <div id="ah25MON" class="ah25Section"><h4>🛡 GIÁM SÁT & HỒ SƠ</h4><div class="ah25Actions"><button class="ah25Btn gray" onclick="sagsV25OpenMyFlights()">CHUYẾN / HỒ SƠ</button><button class="ah25Btn gray" onclick="sagsAdminHubApproval()">PHÊ DUYỆT QUYỀN XEM</button><button class="ah25Btn gray" onclick="sagsAdminHubLegacy('ARCHIVE')">HỒ SƠ LƯU TRỮ</button><button class="ah25Btn gray" onclick="sagsAdminHubLegacy('AUDIT')">NHẬT KÝ</button></div></div></div>`;document.body.appendChild(m);
+    }
+    const bar=document.querySelector('.toolbar-row.main-actions');if(bar&&!document.getElementById('roleBtnAdminHubV25')){const b=document.createElement('button');b.id='roleBtnAdminHubV25';b.type='button';b.textContent='⚙ QUẢN LÝ';b.onclick=open;const anchor=document.getElementById('roleBtnFlights');if(anchor?.parentNode)anchor.parentNode.insertBefore(b,anchor.nextSibling);else bar.appendChild(b);}
+  }
+  function open(){if(!isAD())return alert('Chỉ AD được mở QUẢN LÝ.');ensureUI();document.getElementById('ah25Modal')?.classList.add('show');section('OPS');}
+  function close(){document.getElementById('ah25Modal')?.classList.remove('show');}
+  function section(k){['OPS','PEOPLE','MON'].forEach(x=>document.getElementById('ah25'+x)?.classList.toggle('show',x===k));}
+  async function roster(input){const f=input?.files?.[0],st=document.getElementById('ah25RosterStatus');if(!f)return;input.disabled=true;if(st){st.className='ah25Status';st.textContent='Đang xử lý '+f.name+'…';}try{const r=await root.sagsV25ImportDailyRoster(f);if(st){st.className='ah25Status ok';st.textContent=`✓ ${r.fileName}\n${r.rows} dòng · ${r.legs} LEG · ${r.assignments} assignment · ${r.forms} biểu mẫu${r.review?`\n⚠ ${r.review} rotation cần AD kiểm tra.`:'\n✓ Rotation rõ ràng đã tự ghép.'}`;}}catch(e){if(st){st.className='ah25Status err';st.textContent='Không xử lý được: '+S(e?.message||e);}else alert(S(e?.message||e));}finally{input.disabled=false;input.value='';}}
+  function findLegacy(kind){
+    const all=[...document.querySelectorAll('button')].filter(b=>b.id!=='roleBtnAdminHubV25'&&!b.closest('#ah25Modal'));const txt=b=>S(b.textContent).toUpperCase();const id=b=>S(b.id).toUpperCase();
+    const tests={ACCOUNT:b=>/ACCOUNT|TÀI KHOẢN|TAI KHOAN/.test(txt(b)+' '+id(b)),PERMISSION:b=>/PHÂN QUYỀN|PHAN QUYEN|PERMISSION/.test(txt(b)+' '+id(b)),BUILDER:b=>/BUILDER|CẤU HÌNH|CAU HINH/.test(txt(b)+' '+id(b)),ARCHIVE:b=>/HỒ SƠ|HO SO|ARCHIVE/.test(txt(b)+' '+id(b)),AUDIT:b=>/NHẬT KÝ|NHAT KY|AUDIT/.test(txt(b)+' '+id(b))};return all.find(tests[kind]||(()=>false));
+  }
+  function legacy(kind){const b=findLegacy(kind);if(b){close();b.click();}else alert('Chức năng '+kind+' chưa có nút tương ứng trên bản lõi hiện tại.');}
+  function approval(){if(typeof root.sagsV2ApprovalOpen==='function'){close();return root.sagsV2ApprovalOpen();}alert('Phê duyệt chưa sẵn sàng.');}
+  root.openAdminHub=open;root.sagsAdminHubOpen=open;root.sagsAdminHubClose=close;root.sagsAdminHubSection=section;root.sagsAdminHubRoster=roster;root.sagsAdminHubLegacy=legacy;root.sagsAdminHubApproval=approval;root.__SAGS_ADMIN_HUB_V25__={BUILD,isAD};
+  if(typeof document!=='undefined'){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ensureUI,{once:true});else ensureUI();root.addEventListener?.('sags:role-changed',ensureUI);root.addEventListener?.('sags:auth-ready',ensureUI);}
 })(typeof window!=='undefined'?window:globalThis);

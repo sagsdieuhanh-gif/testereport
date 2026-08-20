@@ -1,0 +1,74 @@
+E-REPORT SAGS V2.5 AI · QA RESULTS
+Build: V2.5-20260820-02
+Date: 20/08/2026
+
+1. JAVASCRIPT / JSON
+PASS · session-bridge-v25.js: node --check
+PASS · flight-registry-v2.js: node --check
+PASS · flight-dossier-v2.js: node --check
+PASS · flight-hub.js: node --check
+PASS · admin-hub.js: node --check
+PASS · firebase-config.js: node --check
+PASS · service-worker.js: node --check
+PASS · version.json / v2-version.json: valid JSON
+
+2. BUILD CONSISTENCY
+PASS · version.json = V2.5 / V2.5-20260820-02
+PASS · v2-version.json = V2.5 / V2.5-20260820-02
+PASS · Flight Registry BUILD = V2.5-20260820-02
+PASS · Flight Dossier BUILD = V2.5-20260820-02
+PASS · Session Bridge / Flight Hub / Admin Hub = V2.5-20260820-02
+PASS · Service Worker BUILD = V2.5-20260820-02
+PASS · cache = sags-v2-5-shared-flight-20260820-02
+
+3. PERFORMANCE STATIC SCAN · NEW V2.5 MODULES
+PASS · MutationObserver implementation: 0
+PASS · setInterval: 0
+PASS · requestAnimationFrame loop: 0
+PASS · Flight Registry/Dossier RTDB .on("value"): 0
+PASS · override root.persist: 0
+PASS · override root.draw: 0
+PASS · override root.applyRoleUI: 0
+NOTE · Safe Update vẫn có bounded setTimeout cho vòng đời Service Worker/reload; không phải polling nghiệp vụ.
+
+4. ADMIN HUB
+PASS · session bridge __sagsGetSession() đọc lexical currentRole/currentUserProfile khi có.
+PASS · AD entry = ⚙ QUẢN LÝ.
+PASS · 3 nhóm: VẬN HÀNH CHUYẾN / NHÂN SỰ & CẤU HÌNH / GIÁM SÁT & HỒ SƠ.
+PASS · nút QUẢN LÝ CHUYẾN cũ / DAILY ROSTER cũ được ẩn ở top-level AD để tránh trùng.
+PASS · DAILY ROSTER trong Admin Hub là one-step: chọn file -> sagsV25ImportDailyRoster -> tạo/cập nhật ngay.
+PASS · + THÊM CHUYẾN LẺ vẫn giữ làm fallback.
+
+5. FLIGHT / ASSIGNMENT LOGIC
+PASS · ARR -> DEP auto-link khi rõ ràng.
+PASS · DEP-only + A/C Reg -> ON_GROUND.
+PASS · ARR-only hợp lệ, không tạo DEP giả.
+PASS · 2 ARR cùng tranh 1 DEP -> đánh dấu/chặn xung đột, không tự gán âm thầm.
+PASS · Grnd_Cor only -> 42.3.
+PASS · Grnd_Cor + Grnd_Ld khác người -> 42.1 + 55.1.
+PASS · cùng người Cor + Ld -> 42.3.
+PASS · Pax_Supr -> FSAGS09.
+PASS · CBTT / ĐH / Sân đỗ / Hành lý nhà ga / Kho hàng tạo assignment cùng flight record khi roster có cột tương ứng.
+Logic test output: V2.5 LOGIC QA: PASS · legs=4 · extras=8 · rotations=2.
+
+6. UNIFIED MY FLIGHTS / DOSSIER
+PASS · entry dùng chung = ✈ CHUYẾN CỦA TÔI.
+PASS · 3 tab: CÔNG VIỆC / HỒ SƠ CHUYẾN / NHẬT KÝ.
+PASS · Đội phó/Phó đội trưởng/Đội trưởng+ -> UNIT_AUTO.
+PASS · Ca phó/Phó ca/Ca trưởng/Trưởng ca -> REQUIRE_APPROVAL.
+PASS · Nhân viên -> ASSIGNED_ONLY.
+PASS · approval grants có expiry theo ngày và access audit.
+PASS · snapshot sanitizer bỏ binary/base64 khỏi RTDB dossier.
+
+7. SERVICE WORKER / UPDATE
+PASS · new V2.5 modules có trong APP_SHELL + network-fresh list.
+PASS · install dùng Promise.allSettled để một asset phụ lỗi không làm fail toàn bộ worker.
+PASS · cache mới xóa cache cũ khi activate.
+PASS · updater chỉ reload sau khi người dùng bấm LƯU & CẬP NHẬT khi phát hiện build khác.
+
+8. GIỚI HẠN QA
+- Đã kiểm tra cú pháp, build, static performance và pure logic trong sandbox.
+- Chưa chạy E2E nhiều tài khoản Firebase production đồng thời; cần test thực tế sau upload để xác nhận latency/permission trong môi trường thật.
+- Các chức năng legacy chưa phát event snapshot V2.5 vẫn hiển thị là BẢN ĐANG LƯU, không được tuyên bố sai là revision bất biến đã gửi.
+
+FINAL QA: PASS FOR V2.5 BUILD SCOPE.

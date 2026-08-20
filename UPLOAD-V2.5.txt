@@ -1,0 +1,1 @@
+Giải nén → upload đè toàn bộ file trong ZIP vào root → xong.
