@@ -1,6 +1,7 @@
 // E-REPORT SAGS · Firebase Web App config for GitHub Pages
 // Project: e-report-sags
-// V1.92: performance hotfix for Flight Workspace and update runtime.
+// GitHub Pages hosts the web app; Firebase is used only as backend services.
+// Firebase Web config is client-side configuration. Do not place service-account/private keys here.
 window.SAGS_FIREBASE_CONFIG = Object.freeze({
   apiKey: "AIzaSyCImOnRxvqbL-sRGbiS2eFE_Wmvktgc8oI",
   authDomain: "e-report-sags.firebaseapp.com",
@@ -11,15 +12,3 @@ window.SAGS_FIREBASE_CONFIG = Object.freeze({
   appId: "1:670672018280:web:46c336986ecdbbc6a954dd",
   measurementId: "G-JFTKH5BHPX"
 });
-
-(function loadSagsUpdateRuntime(){
-  const BUILD="V1.92-20260820-01";
-  try{
-    if(document.querySelector('script[data-sags-update-runtime-loader]'))return;
-    const s=document.createElement("script");
-    s.src="./update-runtime.js?v="+encodeURIComponent(BUILD);
-    s.async=false;
-    s.setAttribute("data-sags-update-runtime-loader",BUILD);
-    (document.head||document.documentElement).appendChild(s);
-  }catch(e){console.warn("SAGS update runtime loader",e);}
-})();
