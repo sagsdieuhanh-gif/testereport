@@ -1,0 +1,12 @@
+E-REPORT SAGS V1.84 FLIGHT REGISTRY TEST02
+
+CÁCH TEST:
+1. Giải nén ZIP.
+2. Upload đè TOÀN BỘ file trong ZIP vào thư mục gốc E-REPORT-SAGS.
+3. Mở lại app/PWA. Có thể reload đúng 1 lần để dọn Service Worker V1.91/V1.92 cũ.
+4. Vào AD > DAILY ROSTER > tạo/phân công > mở FLIGHT LEG / ROTATION TEST02.
+
+LƯU Ý:
+- TEST02 chủ động vô hiệu hóa `flight-workspace.js` và `update-runtime.js` legacy V1.91/V1.92.
+- Không xóa dữ liệu roster/session nghiệp vụ.
+- DEP-only/ARR-only không bị BỎ QUA.
