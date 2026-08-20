@@ -1,11 +1,11 @@
-/* E-REPORT SAGS · V1.84 FLIGHT REGISTRY TEST01
+/* E-REPORT SAGS · V1.84 FLIGHT REGISTRY TEST02
  * Test architecture only. Base application remains V1.84.
  * Event-driven: zero RTDB listeners, zero polling, zero MutationObserver.
  */
 (function(root){
   "use strict";
 
-  const BUILD="V1.84-FRTEST-20260820-01";
+  const BUILD="V1.84-FRTEST-20260820-02";
   const DB_ROOT="flight_registry_test_v1";
   const SCHEMA=1;
   const S=v=>String(v??"").trim();
@@ -195,16 +195,45 @@
   }
   function groupKey(item){return U(item?.flightName||item?.flightRaw||"").replace(/\s+/g," ");}
   function fallbackPayload(item){
-    const flights=splitFlights(item?.flightName||item?.flightRaw||"");
-    return {flightRaw:item?.flightRaw||item?.flightName||"",flightName:item?.flightName||item?.flightRaw||"",arrFlight:flights[0]||"",depFlight:flights[1]||""};
+    // Không tự coi chuyến đơn là ARR. Với DEP-only/ARR-only phải suy hướng từ STA/STD/route,
+    // hoặc giữ UNKNOWN để AD xử lý; tuyệt đối không bỏ qua chỉ vì thiếu cặp.
+    return {
+      flightRaw:item?.flightRaw||item?.flightName||"",flightName:item?.flightName||item?.flightRaw||"",
+      arrFlight:U(item?.arrFlight),depFlight:U(item?.depFlight),sta:S(item?.sta),std:S(item?.std),
+      acReg:U(item?.acReg),acType:U(item?.acType),route1:U(item?.route1),route3:U(item?.route3),bay:U(item?.bay)
+    };
+  }
+  function payloadScore(p){
+    if(!p)return 0;
+    return (p.arrFlight?8:0)+(p.depFlight?8:0)+(p.sta?3:0)+(p.std?3:0)+(p.acReg?2:0)+(p.route1?1:0)+(p.route3?1:0);
+  }
+  async function bestGroupPayload(group){
+    // Assignment đầu tiên có thể đã bị CHUYỂN và mailbox cũ không còn. Thử vài item trong group
+    // để tránh rơi về fallback thiếu STA/STD rồi phân loại sai chuyến đơn.
+    let best=null,bestScore=-1;
+    for(const item of (group||[]).slice(0,8)){
+      const p=await readAssignmentPayload(item);
+      const c=p||fallbackPayload(item),score=payloadScore(c);
+      if(score>bestScore){best=c;bestScore=score;}
+      if(p&&(p.arrFlight||p.depFlight)&&(p.sta||p.std))break;
+    }
+    return best||fallbackPayload(group?.[0]||{});
+  }
+  function classifySingleLeg(payload,flightNo){
+    const f=U(flightNo);
+    if(!f)return "UNKNOWN";
+    if(U(payload?.depFlight)===f)return "DEP";
+    if(U(payload?.arrFlight)===f)return "ARR";
+    const sta=S(payload?.sta),std=S(payload?.std),r1=U(payload?.route1),r3=U(payload?.route3);
+    if((std&&!sta)||(r3&&!r1))return "DEP";
+    if((sta&&!std)||(r1&&!r3))return "ARR";
+    return "UNKNOWN";
   }
   async function manifestGroups(man){
     const items=Object.values(man?.items||{}).filter(Boolean);const groups=new Map();
     for(const item of items){const k=groupKey(item);if(!k)continue;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(item);}
     const entries=[...groups.entries()];
-    const payloads=await mapLimit(entries,4,async([k,group])=>{
-      const p=await readAssignmentPayload(group[0]);return [k,p||fallbackPayload(group[0])];
-    });
+    const payloads=await mapLimit(entries,4,async([k,group])=>[k,await bestGroupPayload(group)]);
     return {items,groups,payloadMap:new Map(payloads)};
   }
   function legFromCandidate(day,payload,direction,flightNo){
@@ -236,10 +265,21 @@
     for(const [k,group] of groups){
       const payload=payloadMap.get(k)||fallbackPayload(group[0]);
       let arr=U(payload.arrFlight),dep=U(payload.depFlight);const flights=splitFlights(payload.flightName||payload.flightRaw||group[0]?.flightRaw||"");
-      if(!arr&&flights.length>=1)arr=flights[0];if(!dep&&flights.length>=2)dep=flights[1];
+      if(!arr&&!dep&&flights.length>=2){arr=flights[0];dep=flights[1];}
+      if(!arr&&!dep&&flights.length===1){
+        const dir=classifySingleLeg(payload,flights[0]);
+        if(dir==="DEP")dep=flights[0];else if(dir==="ARR")arr=flights[0];
+      }
       const ids=[];
       if(arr){const leg=legFromCandidate(day,payload,"ARR",arr);day.legs[leg.legId]=leg;ids.push(leg.legId);}
-      if(dep){const leg=legFromCandidate(day,payload,"DEP",dep);day.legs[leg.legId]=leg;ids.push(leg.legId);}
+      if(dep){
+        const existed=findExistingLeg(day.legs,"DEP",dep);
+        const leg=legFromCandidate(day,payload,"DEP",dep);
+        // DEP-only có A/C Reg và không có ARR đi kèm: coi là tàu đang nằm tại CXR theo dữ liệu roster.
+        // Nếu AD đã cấu hình nguồn trước đó thì luôn giữ lựa chọn của AD.
+        if(!arr&&!existed&&U(payload.acReg)){leg.depSourceType="ON_GROUND";leg.onGroundReg=U(payload.acReg);}
+        day.legs[leg.legId]=leg;ids.push(leg.legId);
+      }
       if(!arr&&!dep&&flights[0]){const leg=legFromCandidate(day,payload,"UNKNOWN",flights[0]);day.legs[leg.legId]=leg;ids.push(leg.legId);}
       groupLegs.set(k,ids);
     }
@@ -271,14 +311,14 @@
     ensureStyles();const modal=document.getElementById("dailyRosterModal"),panel=modal?.querySelector(".drPanel");if(!panel)return;
     let box=document.getElementById("frtRosterControls");if(!box){
       box=document.createElement("div");box.id="frtRosterControls";
-      box.innerHTML=`<b>🧪 FLIGHT LEG / ROTATION · TEST01</b><div class="frtMini">Không có listener Flight Registry chạy nền. Registry chỉ READ/WRITE khi AD bấm nút.</div><div class="frtRosterBtns" style="margin-top:8px"><button class="drBtn secondary" onclick="sagsFlightRegistryTestSync()">ĐỒNG BỘ LEG TỪ ROSTER</button><button class="drBtn" onclick="sagsFlightRegistryTestOpen()">MỞ LEG / ROTATION</button></div><div class="frtRosterStatus" id="frtRosterStatus">TEST overlay trên V1.84 · chưa thay đổi version/update.</div>`;
+      box.innerHTML=`<b>🧪 FLIGHT LEG / ROTATION · TEST02</b><div class="frtMini">Không có listener Flight Registry chạy nền. Registry chỉ READ/WRITE khi AD bấm nút.</div><div class="frtRosterBtns" style="margin-top:8px"><button class="drBtn secondary" onclick="sagsFlightRegistryTestSync()">ĐỒNG BỘ LEG TỪ ROSTER</button><button class="drBtn" onclick="sagsFlightRegistryTestOpen()">MỞ LEG / ROTATION</button></div><div class="frtRosterStatus" id="frtRosterStatus">TEST02 overlay trên V1.84 · đã có lớp dọn Service Worker V1.91/V1.92 cũ.</div>`;
       const manage=document.getElementById("drManage")?.closest?.(".drField");if(manage?.parentNode)manage.parentNode.insertBefore(box,manage);else panel.appendChild(box);
     }
     box.style.display=isAD()?"":"none";
   }
   function ensureModal(){
     ensureStyles();if(document.getElementById("frtModal"))return;
-    const m=document.createElement("div");m.id="frtModal";m.innerHTML=`<div class="frtPanel"><div class="frtHead"><div><h3>FLIGHT LEG / AIRCRAFT ROTATION</h3><div class="frtSub"><span class="frtTestBadge">TEST01 · V1.84 BASE</span> LEG là gốc. Quan hệ ARR→DEP chỉ được tạo khi AD xác nhận.</div></div><button class="frtBtn gray" onclick="sagsFlightRegistryTestClose()">ĐÓNG</button></div><div class="frtActions"><button class="frtBtn gray" onclick="sagsFlightRegistryTestSync()">ĐỒNG BỘ TỪ ROSTER</button><button class="frtBtn gray" onclick="sagsFlightRegistryTestReload()">TẢI LẠI</button><button class="frtBtn green" onclick="sagsFlightRegistryTestSave()">LƯU QUAN HỆ</button></div><div class="frtStatus" id="frtStatus">Chưa tải dữ liệu.</div><div class="frtHelp"><b>Ví dụ test:</b> ARR A → DEP C: chọn ARR A = “ĐI TIẾP CHUYẾN DEP” và chọn C. ARR B nằm lại: chọn “NẰM LẠI CXR”. DEP D dùng tàu có sẵn: chọn “TÀU ĐANG NẰM TẠI CXR” rồi nhập A/C REG. Hệ thống không bắt buộc tạo B→D.</div><div id="frtBody"></div></div>`;document.body.appendChild(m);
+    const m=document.createElement("div");m.id="frtModal";m.innerHTML=`<div class="frtPanel"><div class="frtHead"><div><h3>FLIGHT LEG / AIRCRAFT ROTATION</h3><div class="frtSub"><span class="frtTestBadge">TEST02 · V1.84 BASE</span> LEG là gốc. Quan hệ ARR→DEP chỉ được tạo khi AD xác nhận.</div></div><button class="frtBtn gray" onclick="sagsFlightRegistryTestClose()">ĐÓNG</button></div><div class="frtActions"><button class="frtBtn gray" onclick="sagsFlightRegistryTestSync()">ĐỒNG BỘ TỪ ROSTER</button><button class="frtBtn gray" onclick="sagsFlightRegistryTestReload()">TẢI LẠI</button><button class="frtBtn green" onclick="sagsFlightRegistryTestSave()">LƯU QUAN HỆ</button></div><div class="frtStatus" id="frtStatus">Chưa tải dữ liệu.</div><div class="frtHelp"><b>Ví dụ test:</b> ARR A → DEP C: chọn ARR A = “ĐI TIẾP CHUYẾN DEP” và chọn C. ARR B nằm lại: chọn “NẰM LẠI CXR”. DEP D dùng tàu có sẵn: chọn “TÀU ĐANG NẰM TẠI CXR” rồi nhập A/C REG. Hệ thống không bắt buộc tạo B→D.</div><div id="frtBody"></div></div>`;document.body.appendChild(m);
     m.addEventListener("change",ev=>{if(ev.target?.matches?.("select[data-frt-relation]"))toggleConditional();});
   }
   function setManagerStatus(msg,err=false){const e=document.getElementById("frtStatus");if(e){e.textContent=msg;e.classList.toggle("err",!!err);}}
@@ -358,7 +398,7 @@
   function patchRoster(){
     if(typeof root.openDailyRosterManager==="function"&&!root.openDailyRosterManager.__frtWrapped){
       baseOpenRoster=root.openDailyRosterManager;
-      const wrapped=function(){const r=baseOpenRoster.apply(this,arguments);try{ensureRosterControls();}catch(e){console.warn("Flight Registry TEST controls",e);}return r;};
+      const wrapped=function(){const r=baseOpenRoster.apply(this,arguments);try{ensureRosterControls();}catch(e){console.warn("Flight Registry TEST02 controls",e);}return r;};
       wrapped.__frtWrapped=true;root.openDailyRosterManager=wrapped;
     }
     if(typeof root.dailyRosterPublish==="function"&&!root.dailyRosterPublish.__frtWrapped){
@@ -378,5 +418,5 @@
 
   // The module itself is loaded once after window.load. This is one-time wiring only.
   patchRoster();
-  console.info(`[SAGS Flight Registry TEST] ${BUILD} ready · no background registry listeners`);
+  console.info(`[SAGS Flight Registry TEST02] ${BUILD} ready · no background registry listeners`);
 })(typeof window!=="undefined"?window:globalThis);
