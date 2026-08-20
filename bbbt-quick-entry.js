@@ -6,7 +6,7 @@
 (function(){
   'use strict';
 
-  const BUILD='V1.85-20260819-02';
+  const BUILD='V1.85-20260819-01';
   const BUTTON_ID='bbbtQuickEntryBtn';
   const MODAL_ID='bbbtQuickEntryModal';
   const STYLE_ID='bbbtQuickEntryStyle';

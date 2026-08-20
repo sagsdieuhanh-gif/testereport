@@ -1,5 +1,7 @@
 // E-REPORT SAGS · Firebase Web App config for GitHub Pages
 // Project: e-report-sags
+// GitHub Pages hosts the web app; Firebase is used only as backend services.
+// Firebase Web config is client-side configuration. Do not place service-account/private keys here.
 window.SAGS_FIREBASE_CONFIG = Object.freeze({
   apiKey: "AIzaSyCImOnRxvqbL-sRGbiS2eFE_Wmvktgc8oI",
   authDomain: "e-report-sags.firebaseapp.com",
@@ -10,20 +12,3 @@ window.SAGS_FIREBASE_CONFIG = Object.freeze({
   appId: "1:670672018280:web:46c336986ecdbbc6a954dd",
   measurementId: "G-JFTKH5BHPX"
 });
-
-/* V2.1 loader on the stable V1.84 core.
- * No wrapper, no index rewriting, no polling. The V2 module is loaded once.
- */
-(function(){
-  "use strict";
-  const BUILD="V2.1-20260820-01";
-  function loadV2(){
-    if(document.querySelector('script[data-sags-v2="'+BUILD+'"]'))return;
-    const s=document.createElement("script");
-    s.src="./flight-registry-v2.js?v="+encodeURIComponent(BUILD);
-    s.async=false;s.dataset.sagsV2=BUILD;
-    (document.head||document.documentElement).appendChild(s);
-  }
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",loadV2,{once:true});
-  else loadV2();
-})();
