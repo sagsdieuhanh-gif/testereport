@@ -1,0 +1,24 @@
+E-REPORT SAGS · V1.84 FLIGHT REGISTRY TEST01 · QA
+Build: V1.84-FRTEST-20260820-01
+Base: V1.84-20260819-01
+
+PASS · flight-registry-test.js syntax (node --check)
+PASS · test harness syntax
+PASS · Scenario: ARR A -> DEP C
+PASS · Scenario: ARR B remains at CXR / no onward flight
+PASS · Scenario: DEP D uses aircraft already on ground at CXR (VN-A999)
+PASS · Conflict: one DEP assigned from two different ARR legs is rejected
+PASS · Flight parser: VJ733 / 834 -> VJ733 / VJ834
+PASS · No executable MutationObserver in new Registry module
+PASS · No setInterval in new Registry module
+PASS · No requestAnimationFrame loop in new Registry module
+PASS · No RTDB .on("value") listener in new Registry module
+PASS · No override of persist()
+PASS · No override of draw()
+PASS · No override of applyRoleUI()
+PASS · Firebase Web config values remain identical to V1.84; only one-time test loader appended
+PASS · TEST package does not replace version.json
+PASS · TEST package does not replace service-worker.js
+
+Architecture note:
+Flight Registry reads only on explicit AD actions (open/reload/sync) and writes only on explicit AD actions (roster publish/sync/save). Existing V1.84 DAILY ROSTER listeners remain unchanged.

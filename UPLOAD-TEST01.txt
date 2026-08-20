@@ -1,0 +1,16 @@
+E-REPORT SAGS · V1.84 FLIGHT REGISTRY TEST01
+
+ĐÂY LÀ TEST OVERLAY, KHÔNG PHẢI RELEASE V1.85.
+
+CÁCH CÀI:
+1. Bảo đảm server đang ở nền V1.84.
+2. Giải nén ZIP này.
+3. Upload đè toàn bộ file trong ZIP vào thư mục gốc E-REPORT-SAGS.
+4. Reload trang hoặc đóng/mở lại PWA một lần.
+5. Đăng nhập AD -> DAILY ROSTER -> MỞ LEG / ROTATION.
+
+Không sửa version.json.
+Không bấm/cố ép cập nhật phiên bản cho TEST01.
+Không thay service-worker.js.
+
+ROLLBACK: dùng ZIP E_REPORT_SAGS_V1.84_FLIGHT_REGISTRY_TEST01_ROLLBACK.zip.
