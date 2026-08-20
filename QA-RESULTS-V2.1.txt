@@ -1,0 +1,50 @@
+E-REPORT SAGS V2.1 · QA RESULTS
+Build: V2.1-20260820-01
+Date: 20/08/2026
+
+PASS · JavaScript syntax:
+- flight-registry-v2.js: node --check OK
+- firebase-config.js: node --check OK
+- service-worker.js: node --check OK
+
+PASS · Build consistency:
+- flight-registry-v2.js = V2.1-20260820-01
+- firebase-config.js loader = V2.1-20260820-01
+- service-worker.js = V2.1-20260820-01
+- v2-version.json = V2.1-20260820-01
+
+PASS · Unified AD entry static validation:
+- roleBtnFlightManageV21 text = ✈️ QUẢN LÝ CHUYẾN
+- CSS shows roleBtnFlightManageV21 only for body.role-admin
+- roleBtnDailyRoster hidden with !important
+- old roleBtnFlightCreateV2 hidden with !important
+- Unified hub includes DAILY ROSTER / manual create / LEG rotation / assignments
+
+PASS · Assignment pure-function tests:
+- Grnd_Cor only -> fsags / 42.3
+- Grnd_Cor + Grnd_Ld different users -> 42.1 + 55.1
+- Same user Grnd_Cor + Grnd_Ld -> 42.3
+- Pax_Supr -> FSAGS09
+- CBTT -> registry assignment CBTT_FINAL
+- ĐH -> registry assignment DH_OPS
+
+PASS · Rotation pure-function tests:
+- A -> C valid
+- B -> REMAIN valid
+- D -> ON_GROUND VN-A999 valid
+- no B -> D auto pairing
+- two ARR -> one DEP conflict is rejected
+
+PASS · Performance static scan of Flight Registry module:
+- no MutationObserver implementation
+- no setInterval
+- no requestAnimationFrame render loop
+- no Registry RTDB .on(value) listener
+- no override root.persist
+- no override root.draw
+- no override root.applyRoleUI
+- updater only uses bounded setTimeout during Service Worker activation/reload
+
+NOTE:
+- Existing V1.84 DAILY ROSTER mailbox/revocation listeners are preserved because they are the established form-delivery mechanism. V2.1 adds no new realtime Flight Registry listener.
+- Headless Chromium is unavailable/stalled in the current container runtime, so browser UI validation is static + DOM-code inspection rather than a completed Chromium run. No browser-run result is claimed.

@@ -11,12 +11,12 @@ window.SAGS_FIREBASE_CONFIG = Object.freeze({
   measurementId: "G-JFTKH5BHPX"
 });
 
-/* V2.0 loader on the stable V1.84 core.
+/* V2.1 loader on the stable V1.84 core.
  * No wrapper, no index rewriting, no polling. The V2 module is loaded once.
  */
 (function(){
   "use strict";
-  const BUILD="V2.0-20260820-01";
+  const BUILD="V2.1-20260820-01";
   function loadV2(){
     if(document.querySelector('script[data-sags-v2="'+BUILD+'"]'))return;
     const s=document.createElement("script");

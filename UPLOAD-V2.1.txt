@@ -1,0 +1,9 @@
+E-REPORT SAGS V2.1 · V2.1-20260820-01
+
+CÁCH CÀI:
+1. Giải nén ZIP.
+2. Upload đè toàn bộ file trong ZIP vào root của E-REPORT-SAGS.
+3. Mở lại E-Report.
+4. Đăng nhập AD và kiểm tra chỉ còn nút: ✈️ QUẢN LÝ CHUYẾN.
+
+Không cần đổi tên file. Không cần upload theo thứ tự.

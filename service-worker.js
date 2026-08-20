@@ -1,5 +1,5 @@
-const CACHE_NAME="sags-v2-0-flight-registry-20260820-01";
-const BUILD="V2.0-20260820-01";
+const CACHE_NAME="sags-v2-1-flight-manager-20260820-01";
+const BUILD="V2.1-20260820-01";
 const APP_SHELL=[
   "./index.html","./version.json","./v2-version.json","./firebase-config.js","./daily-roster.js","./flight-registry-v2.js","./v488-archive.js","./ai-crosscheck.js","./document-scanner.js","./admin-builder.js","./ac-limits.js",
   "./alert-mva.mp3","./alert-mvt.mp3","./alert-pushback-missing.mp3","./alert-read-sign.mp3","./alert-ket-so-moi.mp3","./alert-ket-so-thay-doi.mp3",
