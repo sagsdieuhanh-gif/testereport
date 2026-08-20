@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "version": "V1.90",
+  "displayVersion": "V1.90 AI",
+  "build": "V1.90-20260820-01",
+  "serviceWorkerBuild": "V1.90-20260820-01",
+  "updateRuntimeBuild": "V1.90-20260820-01",
+  "flightWorkspaceBuild": "V1.90-20260820-01",
+  "releaseDate": "2026-08-20"
+}
