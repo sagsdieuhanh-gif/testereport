@@ -1,9 +1,9 @@
-/* E-REPORT SAGS V2.3 · MASTER FLIGHT HUB
+/* E-REPORT SAGS V2.4 · MASTER FLIGHT HUB
  * One Daily Roster flight = one master flight record. Operational modules keep their canonical data
  * but register a compact pointer/status under the same flightId so every department works in one flight workspace.
  */
 (function(root){'use strict';
-  const BUILD='V2.3-20260820-01';
+  const BUILD='V2.4-20260820-01';
   const ROOT='flight_records', MANIFEST='roster_manifests', MAIL='roster_mail';
   const S=v=>String(v??'').trim(), U=v=>S(v).toUpperCase();
   const safe=v=>S(v).replace(/[.#$\[\]\/]/g,'_');
@@ -33,9 +33,9 @@
   root.__FLIGHT_HUB_HDSD='DAILY ROSTER tạo 1 flightId/hồ sơ mẹ cho mỗi chuyến. FINAL, KẾT SỔ, RAMP/hàng hóa và module liên quan không nhân bản dữ liệu chính thức; mỗi module đăng ký trạng thái + đường dẫn dữ liệu chuẩn vào đúng flightId. Mở chuyến thấy toàn bộ trạng thái trong cùng hồ sơ.';
 
   function installDailyRosterUi(){
-    try{const b=document.getElementById('drPublishBtn');if(b)b.textContent='TẠO CHUYẾN & PHÂN CÔNG';}catch(_){}
+    try{const b=document.getElementById('drPublishBtn');if(b)b.textContent='✈ TẠO CHUYẾN';}catch(_){}
     if(root.__FLIGHT_HUB_DAILY_HOOK)return;const base=root.dailyRosterPublish;if(typeof base!=='function'){setTimeout(installDailyRosterUi,500);return}
-    root.__FLIGHT_HUB_DAILY_HOOK=1;root.dailyRosterPublish=async function(){const r=await base.apply(this,arguments);try{setTimeout(()=>root.rosterHandoffOpen?.(),250)}catch(_){}return r};
+    root.__FLIGHT_HUB_DAILY_HOOK=1;root.dailyRosterPublish=async function(){const r=await base.apply(this,arguments);if(r===true){try{root.closeDailyRosterManager?.();setTimeout(()=>root.rosterHandoffOpen?.(),250)}catch(_){}}return r};
   }
   root.sagsFlightHubModuleBadges=function(rec){const mods=rec?.modules||{},order=['KẾT SỔ','FINAL','RAMP','HÀNG HÓA','ULD','MVT','MVA'];return order.filter(k=>mods[k]).map(k=>({kind:k,status:S(mods[k]?.status||'ĐÃ CÓ'),revisionNo:Number(mods[k]?.revisionNo||0)}));};
 

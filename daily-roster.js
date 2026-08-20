@@ -1,4 +1,4 @@
-/* E-REPORT SAGS · DAILY ROSTER ROLE MAP + PVHK FSAGS09 + DIRECT REASSIGN · V1.77 */
+/* E-REPORT SAGS · DAILY ROSTER ROLE MAP + PVHK FSAGS09 + DIRECT REASSIGN · V2.4 UI */
 (function(root){
   "use strict";
 
@@ -334,7 +334,7 @@
     const style=document.createElement("style");
     style.textContent=`
       #dailyRosterModal{display:none;position:fixed;inset:0;z-index:16050;background:rgba(0,0,0,.52);align-items:center;justify-content:center;padding:12px;box-sizing:border-box;font-family:Arial,sans-serif}
-      #dailyRosterModal.show{display:flex}.drPanel{width:min(96vw,960px);max-height:92vh;overflow:auto;background:#fff;border-radius:16px;box-shadow:0 16px 45px rgba(0,0,0,.28);padding:16px;box-sizing:border-box}.drHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.drHead h3{margin:0;color:#0b4f91}.drSub{font-size:13px;color:#5d6875;line-height:1.45;margin:5px 0 12px}.drGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.drField{border:1px solid #d9e1e8;border-radius:11px;padding:10px;background:#f9fbfd}.drField label{display:block;font-size:12px;font-weight:800;color:#29445e;margin-bottom:5px}.drField input,.drField select{width:100%;box-sizing:border-box;padding:9px;border:1px solid #c9d5df;border-radius:8px;background:#fff}.drCols{display:flex;flex-wrap:wrap;gap:7px}.drCheck{display:flex!important;align-items:center;gap:5px;font-size:12px!important;font-weight:700!important;margin:0!important;padding:5px 7px;border:1px solid #d7e0e8;border-radius:8px;background:#fff}.drCheck input{width:auto!important}.drActions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}.drBtn{border:0;border-radius:9px;padding:9px 13px;font-weight:800;cursor:pointer;background:#0b67b2;color:#fff}.drBtn.secondary{background:#eef3f7;color:#31475a;border:1px solid #ccd7df}.drBtn.publish{background:#15803d}.drStatus{margin-top:10px;padding:9px 10px;border-radius:9px;background:#eef6ff;color:#234764;font-size:13px;white-space:pre-wrap}.drStatus.err{background:#fff0f0;color:#9b1c1c}.drTableWrap{overflow:auto;margin-top:10px;border:1px solid #d9e1e8;border-radius:10px;max-height:38vh}.drTable{border-collapse:collapse;width:100%;font-size:12px;white-space:nowrap}.drTable th,.drTable td{border-bottom:1px solid #e5ebf0;padding:7px 8px;text-align:left}.drTable th{position:sticky;top:0;background:#edf5fb;color:#214968;z-index:1}.drBadge{display:inline-block;border-radius:999px;padding:2px 7px;background:#e8f5e9;color:#176b32;font-weight:800;margin:1px}.drEmpty{padding:14px;color:#667}.drToast{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:17000;background:#123d64;color:#fff;border-radius:12px;padding:10px 14px;font:700 13px Arial;box-shadow:0 8px 25px rgba(0,0,0,.25);max-width:min(90vw,520px);text-align:center}
+      #dailyRosterModal.show{display:flex}.drPanel{width:min(96vw,960px);max-height:92vh;overflow:auto;background:#fff;border-radius:16px;box-shadow:0 16px 45px rgba(0,0,0,.28);padding:16px;box-sizing:border-box}.drHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.drHead h3{margin:0;color:#0b4f91}.drSub{font-size:13px;color:#5d6875;line-height:1.45;margin:5px 0 12px}.drGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.drField{border:1px solid #d9e1e8;border-radius:11px;padding:10px;background:#f9fbfd}.drField label{display:block;font-size:12px;font-weight:800;color:#29445e;margin-bottom:5px}.drField input,.drField select{width:100%;box-sizing:border-box;padding:9px;border:1px solid #c9d5df;border-radius:8px;background:#fff}.drCols{display:flex;flex-wrap:wrap;gap:7px}.drCheck{display:flex!important;align-items:center;gap:5px;font-size:12px!important;font-weight:700!important;margin:0!important;padding:5px 7px;border:1px solid #d7e0e8;border-radius:8px;background:#fff}.drCheck input{width:auto!important}.drActions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}.drBtn{border:0;border-radius:9px;padding:9px 13px;font-weight:800;cursor:pointer;background:#0b67b2;color:#fff}.drBtn.secondary{background:#eef3f7;color:#31475a;border:1px solid #ccd7df}.drBtn.publish{background:#15803d}.drBtn.createFlight{display:none;width:100%;min-height:58px;font-size:18px;justify-content:center;align-items:center;box-shadow:0 8px 20px rgba(21,128,61,.22)}.drBtn.createFlight.ready{display:flex}.drStatus{margin-top:10px;padding:9px 10px;border-radius:9px;background:#eef6ff;color:#234764;font-size:13px;white-space:pre-wrap}.drStatus.err{background:#fff0f0;color:#9b1c1c}.drTableWrap{overflow:auto;margin-top:10px;border:1px solid #d9e1e8;border-radius:10px;max-height:38vh}.drTable{border-collapse:collapse;width:100%;font-size:12px;white-space:nowrap}.drTable th,.drTable td{border-bottom:1px solid #e5ebf0;padding:7px 8px;text-align:left}.drTable th{position:sticky;top:0;background:#edf5fb;color:#214968;z-index:1}.drBadge{display:inline-block;border-radius:999px;padding:2px 7px;background:#e8f5e9;color:#176b32;font-weight:800;margin:1px}.drEmpty{padding:14px;color:#667}.drToast{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:17000;background:#123d64;color:#fff;border-radius:12px;padding:10px 14px;font:700 13px Arial;box-shadow:0 8px 25px rgba(0,0,0,.25);max-width:min(90vw,520px);text-align:center}
       #roleBtnPVHK09Roster{background:#0b6b72!important;color:#fff!important}
       @media(max-width:650px){.drGrid{grid-template-columns:1fr}.drPanel{padding:12px}.drActions .drBtn{flex:1}}
     `;
@@ -343,13 +343,14 @@
     m.innerHTML=`<div class="drPanel"><div class="drHead"><div><h3>📋 DAILY ROSTER · TỰ PHÂN BIỂU MẪU</h3><div class="drSub">RAMP dùng Grnd_Cor / Grnd_Ld. <b>PVHK: Pax_Supr → FSAGS 09</b>. Nhân viên đúng username tự nhận biểu mẫu, không cần bấm NHẬN.</div></div><button class="drBtn secondary" onclick="closeDailyRosterManager()">ĐÓNG</button></div>
       <div class="drField"><label>File DAILY ROSTER</label><input id="drFile" type="file" accept=".xlsx,.xlsm,.csv"></div>
       <div class="drStatus"><b>QUY TẮC TẠO FORM</b><br>• Không có Grnd_Ld: Grnd_Cor → 42.3<br>• Có Grnd_Ld khác người: Grnd_Cor → 42.1, Grnd_Ld → 55.1<br>• Cùng người ở Grnd_Cor + Grnd_Ld → 42.3<br>• <b>Pax_Supr → FSAGS 09</b>.</div>
-      <div class="drActions"><button class="drBtn" onclick="dailyRosterReadPreview()">ĐỌC & XEM TRƯỚC</button><button class="drBtn publish" id="drPublishBtn" onclick="dailyRosterPublish()" disabled>TẠO & PHÂN CÔNG</button></div>
+      <div class="drActions"><button class="drBtn" id="drReadBtn" onclick="dailyRosterReadPreview()">📄 ĐỌC DAILY ROSTER</button></div>
+      <div class="drActions" style="margin-top:10px"><button class="drBtn publish createFlight" id="drPublishBtn" onclick="dailyRosterPublish()" disabled>✈ TẠO CHUYẾN</button></div>
       <div class="drStatus" id="drStatus">Chọn file roster để bắt đầu.</div><div id="drPreview"></div>
       <div class="drField" style="margin-top:14px"><label>AD · CHUYỂN NGƯỜI PHỤ TRÁCH TRỰC TIẾP</label><div class="drSub">Không dùng GIAO CA. Chọn ngày → tải phân công → bấm CHUYỂN ở đúng biểu mẫu. Dữ liệu roster đã lưu trên V1.66 được giữ qua bản đồng bộ roster.</div><div style="display:flex;gap:8px;flex-wrap:wrap"><input id="drManageDate" type="date" style="flex:1;min-width:160px"><button class="drBtn secondary" onclick="dailyRosterLoadAssignments()">TẢI PHÂN CÔNG</button></div><div id="drManage"></div></div>
       </div>`;
     document.body.appendChild(m);
     const td=new Date(),d=`${td.getFullYear()}-${String(td.getMonth()+1).padStart(2,"0")}-${String(td.getDate()).padStart(2,"0")}`;const md=document.getElementById("drManageDate");if(md)md.value=d;
-    document.getElementById("drFile")?.addEventListener("change",()=>{preview=null;const b=document.getElementById("drPublishBtn");if(b)b.disabled=true;});
+    document.getElementById("drFile")?.addEventListener("change",()=>{preview=null;const b=document.getElementById("drPublishBtn");if(b){b.disabled=true;b.classList.remove("ready");}setStatus("Đã chọn file. Bấm ĐỌC DAILY ROSTER để kiểm tra trước khi tạo chuyến.");});
   }
   function canBuildPVHK09(){
     try{return upper(currentRole)==="AD"||(typeof v485Can==="function"&&v485Can("FSAGS09"));}catch(e){return false;}
@@ -399,9 +400,9 @@
       preview={...x,sheetName:parsed.sheetName,fileName:file.name};
       renderPreview(preview);
       const md=document.getElementById("drManageDate");if(md&&preview.rosterDate)md.value=preview.rosterDate;
-      document.getElementById("drPublishBtn").disabled=!preview.records.length;
-      setStatus(`Đã dựng ${preview.records.length} biểu mẫu theo Grnd_Cor / Grnd_Ld / Pax_Supr. Kiểm tra bảng rồi bấm TẠO & PHÂN CÔNG.`);
-    }catch(e){preview=null;document.getElementById("drPublishBtn").disabled=true;setStatus("Không đọc được roster: "+S(e?.message||e),true);}
+      const createBtn=document.getElementById("drPublishBtn");if(createBtn){createBtn.disabled=!preview.records.length;createBtn.classList.toggle("ready",!!preview.records.length);}
+      setStatus(`✓ DAILY ROSTER hợp lệ. Đã nhận ${preview.records.length} phân công. Kiểm tra danh sách bên dưới rồi bấm nút lớn ✈ TẠO CHUYẾN.`);
+    }catch(e){preview=null;const createBtn=document.getElementById("drPublishBtn");if(createBtn){createBtn.disabled=true;createBtn.classList.remove("ready");}setStatus("Không đọc được roster: "+S(e?.message||e),true);}
   };
 
   async function publishRecords(data){
@@ -438,10 +439,11 @@
     return {writes,removes,overrides,dates:byDate.size};
   }
   root.dailyRosterPublish=async function(){
-    if(!canManageDailyRoster()||!preview?.records?.length)return;const btn=document.getElementById("drPublishBtn");if(btn)btn.disabled=true;
-    try{setStatus("Đang tạo mailbox và phân công biểu mẫu…");const r=await publishRecords(preview);setStatus(`✓ Đã phân công ${r.writes} biểu mẫu cho ${r.dates} ngày. Xóa ${r.removes} phân công cũ. Giữ ${r.overrides} chuyển người thủ công.\nRAMP theo Grnd_Cor/Grnd_Ld · Pax_Supr→FSAGS 09.`);void root.dailyRosterLoadAssignments();}
-    catch(e){setStatus("Không phân công được: "+S(e?.message||e),true);}
+    if(!canManageDailyRoster()||!preview?.records?.length)return false;const btn=document.getElementById("drPublishBtn");if(btn)btn.disabled=true;let ok=false;
+    try{setStatus("Đang tạo chuyến và phân công công việc…");const r=await publishRecords(preview);ok=true;setStatus(`✓ ĐÃ TẠO CHUYẾN. Đã phân công ${r.writes} công việc cho ${r.dates} ngày. Xóa ${r.removes} phân công cũ. Giữ ${r.overrides} chuyển người thủ công.\nHệ thống sẽ mở DANH SÁCH CHUYẾN HÔM NAY.`);void root.dailyRosterLoadAssignments();}
+    catch(e){setStatus("Không tạo chuyến được: "+S(e?.message||e),true);}
     finally{if(btn)btn.disabled=false;}
+    return ok;
   };
 
   function opDateMs(iso){const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(S(iso));if(!m)return Date.now();return new Date(Number(m[1]),Number(m[2])-1,Number(m[3]),12,0,0,0).getTime();}
