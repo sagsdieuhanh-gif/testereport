@@ -11,12 +11,12 @@ window.SAGS_FIREBASE_CONFIG = Object.freeze({
   measurementId: "G-JFTKH5BHPX"
 });
 
-// TEST02: one-time cleanup for the legacy V1.91/V1.92 worker that rewrote index.html
+// TEST03: one-time cleanup for the legacy V1.91/V1.92 worker that rewrote index.html
 // and injected flight-workspace.js. This is NOT a polling loop.
 (function resetLegacyWorkspaceWorkerOnce(){
   "use strict";
   if(!("serviceWorker" in navigator))return;
-  const KEY="sags-frtest02-sw-reset";
+  const KEY="sags-frtest03-sw-reset";
   async function workerBuild(worker){
     if(!worker)return "";
     return await new Promise(resolve=>{
@@ -39,14 +39,14 @@ window.SAGS_FIREBASE_CONFIG = Object.freeze({
       await reg.update();
       if(reg.waiting)reg.waiting.postMessage({type:"SKIP_WAITING"});
       else if(reg.installing){reg.installing.addEventListener("statechange",()=>{if(reg.waiting)reg.waiting.postMessage({type:"SKIP_WAITING"});});}
-    }catch(e){console.warn("[SAGS TEST02] legacy worker cleanup",e);}
+    }catch(e){console.warn("[SAGS TEST03] legacy worker cleanup",e);}
   },{once:true});
 })();
 
-// Load Flight Registry TEST02 only once after the V1.84 app has finished loading.
+// Load Flight Registry TEST03 only once after the V1.84 app has finished loading.
 (function(){
   "use strict";
-  const TEST_BUILD="V1.84-FRTEST-20260820-02";
+  const TEST_BUILD="V1.84-FRTEST-20260820-03";
   function load(){
     if(document.querySelector('script[data-sags-flight-registry-test="'+TEST_BUILD+'"]'))return;
     const s=document.createElement("script");

@@ -1,0 +1,13 @@
+E-REPORT SAGS · V1.84 FLIGHT REGISTRY TEST03
+
+CÀI:
+1. Giải nén ZIP.
+2. Upload đè toàn bộ file vào root E-REPORT-SAGS.
+3. Mở lại app/PWA.
+
+AD sẽ thấy nút:
+✈️ TẠO / QL CHUYẾN
+
+TEST03 giữ version chính V1.84 để tránh can thiệp luồng safe update trong giai đoạn thử.
+
+Nếu trước đó máy từng chạy V1.91/V1.92, lớp cleanup trong firebase-config.js vẫn giữ để đưa worker về V1.84.

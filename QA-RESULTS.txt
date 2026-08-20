@@ -1,21 +1,41 @@
-E-REPORT SAGS · V1.84 FLIGHT REGISTRY TEST02 · QA
+E-REPORT SAGS · V1.84 FLIGHT REGISTRY TEST03 · QA
+================================================
 
-PASS · flight-registry-test.js syntax
-PASS · firebase-config.js syntax
-PASS · service-worker.js syntax
-PASS · DEP-only VJ2872 / CXR-UFA / STD 08:00 => DEP LEG
-PASS · DEP-only VJ730 / CXR-HPH / STD 10:35 => DEP LEG
-PASS · DEP-only DWC009 / CXR-TPE / STD 13:00 => DEP LEG
-PASS · ARR-only with STA + inbound route => ARR LEG
-PASS · new DEP-only + A/C Reg defaults to ON_GROUND source
-PASS · legacy flight-workspace.js is neutralized
-PASS · legacy update-runtime.js is neutralized
-PASS · packaged Service Worker is V1.84 cache/build
-PASS · Flight Registry module: no MutationObserver
-PASS · Flight Registry module: no setInterval
-PASS · Flight Registry module: no RTDB value listener
-PASS · Flight Registry module: does not override persist/draw/applyRoleUI
+BASE
+PASS  version.json remains V1.84-20260819-01
+PASS  service-worker.js remains V1.84 base worker
+PASS  legacy V1.91/V1.92 flight-workspace stub disabled
+PASS  legacy V1.90+ update-runtime stub disabled
 
-Root cause fixed:
-V1.91 code had `if(!rec.arrFlight||!rec.depFlight) INVALID`, which produced
-“BỎ QUA · Thiếu chuyến đến hoặc chuyến đi”. TEST02 no longer uses that rule.
+AD INITIAL CREATE UI
+PASS  AD toolbar entry: ✈️ TẠO / QL CHUYẾN
+PASS  Create mode: ARR → DEP pair
+PASS  Create mode: ARR-only
+PASS  Create mode: DEP-only
+PASS  Pair creates ARR source → DEP rotation
+PASS  ARR-only allows REMAIN / NIGHT STOP / TBD
+PASS  DEP-only allows ON_GROUND / TBD
+PASS  ON_GROUND requires A/C Reg
+PASS  Duplicate same-date ARR/DEP flight is blocked
+PASS  Bay + Gate stored in LEG
+
+ROTATION RULES
+PASS  A → C
+PASS  B remains at CXR without fake onward flight
+PASS  D uses on-ground aircraft VN-A999 without fake ARR
+PASS  One DEP cannot receive two ARR sources
+PASS  One ARR cannot feed two DEP legs
+
+PERFORMANCE STATIC CHECK
+PASS  no MutationObserver in Flight Registry TEST03
+PASS  no setInterval in Flight Registry TEST03
+PASS  no RTDB .on("value") listener in Flight Registry TEST03
+PASS  no polling loop
+PASS  no persist()/draw() override
+NOTE  one event-driven applyRoleUI hook only toggles AD entry button; no Firebase read/write/render
+
+SYNTAX
+PASS  node --check flight-registry-test.js
+PASS  node --check firebase-config.js
+PASS  node --check flight-workspace.js
+PASS  node --check update-runtime.js
