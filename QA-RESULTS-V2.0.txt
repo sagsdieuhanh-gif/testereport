@@ -1,0 +1,19 @@
+E-REPORT SAGS V2.0 QA
+Build V2.0-20260820-01
+
+new MutationObserver: 0
+setInterval(: 0
+RTDB .on("value"): 0
+RTDB .on('value'): 0
+requestAnimationFrame(: 0
+applyRoleUI=: 0
+root.persist=: 0
+root.draw=: 0
+role-admin CSS: 2
+create button: 1
+
+Node syntax: PASS
+JSON validation: PASS
+DOM simulation: PASS — AD button exists + role-admin CSS + create modal opens
+Rotation scenario: PASS — A→C, B REMAIN, D ON_GROUND
+Duplicate DEP source: PASS — blocked

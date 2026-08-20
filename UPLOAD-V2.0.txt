@@ -1,0 +1,15 @@
+E-REPORT SAGS V2.0
+Build: V2.0-20260820-01
+
+CÀI ĐẶT:
+1. Giải nén ZIP.
+2. Upload đè TOÀN BỘ file trong ZIP vào thư mục gốc E-REPORT-SAGS.
+3. Reload / đóng mở lại PWA một lần.
+4. Đăng nhập AD.
+5. Kiểm tra thanh chức năng có nút: ✈️ TẠO CHUYẾN.
+
+LƯU Ý:
+- V2.0 giữ lõi V1.84 để tránh tái phát lag.
+- version.json là kênh tương thích lõi V1.84.
+- v2-version.json là phiên bản V2 thực tế.
+- Không bấm/không cần xử lý popup update V1 cũ; sau reload V2.0 tự hiển thị nhãn V2.0 AI.
