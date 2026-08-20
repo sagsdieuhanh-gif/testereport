@@ -344,13 +344,13 @@
       <div class="drField"><label>File DAILY ROSTER</label><input id="drFile" type="file" accept=".xlsx,.xlsm,.csv"></div>
       <div class="drStatus"><b>QUY TẮC TẠO FORM</b><br>• Không có Grnd_Ld: Grnd_Cor → 42.3<br>• Có Grnd_Ld khác người: Grnd_Cor → 42.1, Grnd_Ld → 55.1<br>• Cùng người ở Grnd_Cor + Grnd_Ld → 42.3<br>• <b>Pax_Supr → FSAGS 09</b>.</div>
       <div class="drActions"><button class="drBtn" id="drReadBtn" onclick="dailyRosterReadPreview()">📄 ĐỌC DAILY ROSTER</button></div>
-      <div class="drActions" style="margin-top:10px"><button class="drBtn publish createFlight" id="drPublishBtn" onclick="dailyRosterPublish()" disabled>✈ TẠO CHUYẾN</button></div>
+      <div class="drActions" style="margin-top:10px"><button class="drBtn publish createFlight" id="drPublishBtn" onclick="dailyRosterPublish()" disabled style="display:none">✈ TẠO CHUYẾN</button></div>
       <div class="drStatus" id="drStatus">Chọn file roster để bắt đầu.</div><div id="drPreview"></div>
       <div class="drField" style="margin-top:14px"><label>AD · CHUYỂN NGƯỜI PHỤ TRÁCH TRỰC TIẾP</label><div class="drSub">Không dùng GIAO CA. Chọn ngày → tải phân công → bấm CHUYỂN ở đúng biểu mẫu. Dữ liệu roster đã lưu trên V1.66 được giữ qua bản đồng bộ roster.</div><div style="display:flex;gap:8px;flex-wrap:wrap"><input id="drManageDate" type="date" style="flex:1;min-width:160px"><button class="drBtn secondary" onclick="dailyRosterLoadAssignments()">TẢI PHÂN CÔNG</button></div><div id="drManage"></div></div>
       </div>`;
     document.body.appendChild(m);
     const td=new Date(),d=`${td.getFullYear()}-${String(td.getMonth()+1).padStart(2,"0")}-${String(td.getDate()).padStart(2,"0")}`;const md=document.getElementById("drManageDate");if(md)md.value=d;
-    document.getElementById("drFile")?.addEventListener("change",()=>{preview=null;const b=document.getElementById("drPublishBtn");if(b){b.disabled=true;b.classList.remove("ready");}setStatus("Đã chọn file. Bấm ĐỌC DAILY ROSTER để kiểm tra trước khi tạo chuyến.");});
+    document.getElementById("drFile")?.addEventListener("change",()=>{preview=null;const b=document.getElementById("drPublishBtn");if(b){b.disabled=true;b.classList.remove("ready");b.style.display="none";}setStatus("Đã chọn file. Bấm ĐỌC DAILY ROSTER để kiểm tra trước khi tạo chuyến.");});
   }
   function canBuildPVHK09(){
     try{return upper(currentRole)==="AD"||(typeof v485Can==="function"&&v485Can("FSAGS09"));}catch(e){return false;}
@@ -389,6 +389,15 @@
     host.innerHTML=`<div class="drStatus">Đọc được <b>${grouped.size}</b> dòng chuyến · <b>${recs.length}</b> biểu mẫu · <b>${users.length}</b> username.<br>Ngày roster: ${esc(data.rosterDate||"không xác định")} · Sheet: ${esc(data.sheetName||"")}</div>${rows.length?`<div class="drTableWrap"><table class="drTable"><thead><tr><th>Ngày</th><th>Flight</th><th>STA</th><th>STD</th><th>Grnd_Cor</th><th>Grnd_Ld</th><th>Pax_Supr</th><th>Biểu mẫu sinh ra</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.date)}</td><td><b>${esc(r.flightRaw)}</b></td><td>${esc(r.sta)}</td><td>${esc(r.std)}</td><td>${(r.grndCor||[]).map(u=>`<span class="drBadge">${esc(u)}</span>`).join(" ")}</td><td>${(r.grndLd||[]).map(u=>`<span class="drBadge">${esc(u)}</span>`).join(" ")}</td><td>${(r.paxSupr||[]).map(u=>`<span class="drBadge">${esc(u)}</span>`).join(" ")}</td><td>${r.assignments.map(a=>`<span class="drBadge">${esc(a.user)} · ${formLabel(a.formGroup)}</span>`).join(" ")}</td></tr>`).join("")}</tbody></table></div>`:'<div class="drEmpty">Không có tên hợp lệ ở Grnd_Cor / Grnd_Ld / Pax_Supr.</div>'}`;
   }
 
+  root.dailyRosterLoadFile=async function(file){
+    if(!file||!canManageDailyRoster())return;
+    ensureUI();
+    root.openDailyRosterManager();
+    const inp=document.getElementById("drFile");
+    if(inp){try{const dt=new DataTransfer();dt.items.add(file);inp.files=dt.files;}catch(e){console.info("DAILY ROSTER file bridge",e?.message||e);}}
+    await root.dailyRosterReadPreview();
+  };
+
   root.openDailyRosterManager=function(){if(!canManageDailyRoster()){try{roleDenied?.("Tài khoản chưa được cấp quyền DAILY ROSTER.");}catch(e){}return;}ensureUI();document.getElementById("dailyRosterModal")?.classList.add("show");};
   root.closeDailyRosterManager=function(){document.getElementById("dailyRosterModal")?.classList.remove("show");};
   root.dailyRosterReadPreview=async function(){
@@ -400,9 +409,9 @@
       preview={...x,sheetName:parsed.sheetName,fileName:file.name};
       renderPreview(preview);
       const md=document.getElementById("drManageDate");if(md&&preview.rosterDate)md.value=preview.rosterDate;
-      const createBtn=document.getElementById("drPublishBtn");if(createBtn){createBtn.disabled=!preview.records.length;createBtn.classList.toggle("ready",!!preview.records.length);}
+      const createBtn=document.getElementById("drPublishBtn");if(createBtn){const ok=!!preview.records.length;createBtn.disabled=!ok;createBtn.classList.toggle("ready",ok);createBtn.style.display=ok?"inline-flex":"none";}
       setStatus(`✓ DAILY ROSTER hợp lệ. Đã nhận ${preview.records.length} phân công. Kiểm tra danh sách bên dưới rồi bấm nút lớn ✈ TẠO CHUYẾN.`);
-    }catch(e){preview=null;const createBtn=document.getElementById("drPublishBtn");if(createBtn){createBtn.disabled=true;createBtn.classList.remove("ready");}setStatus("Không đọc được roster: "+S(e?.message||e),true);}
+    }catch(e){preview=null;const createBtn=document.getElementById("drPublishBtn");if(createBtn){createBtn.disabled=true;createBtn.classList.remove("ready");createBtn.style.display="none";}setStatus("Không đọc được roster: "+S(e?.message||e),true);}
   };
 
   async function publishRecords(data){

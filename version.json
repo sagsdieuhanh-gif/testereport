@@ -1,6 +1,1 @@
-{
-  "version": "V2.4",
-  "label": "V2.4 AI",
-  "build": "V2.4-20260820-01",
-  "displayVersion": "V2.4 AI"
-}
+{"version":"V2.5","build":"V2.5-20260820-01","releasedAt":"2026-08-20T18:24:00+07:00","notes":"Fix AD management visibility + direct DAILY ROSTER upload entry"}

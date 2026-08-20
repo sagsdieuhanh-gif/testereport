@@ -3051,7 +3051,7 @@ user-select:none;-webkit-user-select:none;touch-action:none;-webkit-tap-highligh
   </div>
 </div>
 
-<div id="buildMarker">V2.1</div>
+<div id="buildMarker">V2.5</div>
 <div aria-live="polite" id="currentFerryFlag"><span class="dot"></span><span id="currentFerryFlagText">FERRY</span></div>
 <div class="toolbar compact-main-toolbar">
 <div class="badge">PĐH SAGS-CXR</div>
@@ -12323,8 +12323,8 @@ try {
   alert("Lỗi JavaScript: "+err.message);
 }
 
-const APP_BUILD_VERSION="V2.4-20260820-01";
-const APP_DISPLAY_VERSION="V2.4 AI";
+const APP_BUILD_VERSION="V2.5-20260820-01";
+const APP_DISPLAY_VERSION="V2.5 AI";
 
 // V4.21 — SAFE UPDATE SAVE
 // Before switching to a newly installed app version, force-save all current
@@ -21045,6 +21045,7 @@ function bindRoleHomeFunctionButtons(){
 }
 
 let currentRole="";
+window.__sagsGetSession=function(){return {role:String(currentRole||""),profile:currentUserProfile||null};};
 
 async function roleSha256(v){
   const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(String(v||"")));
@@ -26626,13 +26627,13 @@ window.openCamScanner=openCamScanner;
 </script>
 
 
-<script src="./daily-roster.js?v=V1.82-20260819-01"></script>
+<script src="./daily-roster.js?v=V2.5-20260820-01"></script>
 <script src="./roster-extra-seed.js?v=V1.95-20260820-01"></script>
 <script src="./roster-completed.js?v=V1.87-20260820-01"></script>
-<script src="./flight-hub.js?v=V2.4-20260820-01"></script>
+<script src="./flight-hub.js?v=V2.5-20260820-01"></script>
 <script src="./roster-leg-workspace.js?v=V1.93-20260820-01"></script>
-<script src="./roster-handoff.js?v=V2.4-20260820-01"></script>
-<script src="./admin-hub.js?v=V2.4-20260820-01"></script>
+<script src="./roster-handoff.js?v=V2.5-20260820-01"></script>
+<script src="./admin-hub.js?v=V2.5-20260820-01"></script>
 
 <style id="v191-ios-interaction-fix">
 /* ===== V1.91 iOS interaction stabilization ===== */
