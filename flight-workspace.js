@@ -1,4 +1,4 @@
-/* E-REPORT SAGS · FLIGHT WORKSPACE · V1.91
+/* E-REPORT SAGS · FLIGHT WORKSPACE · V1.92
    Architecture: AD creates the operational flight pair once.
    Each flight leg has a stable legId; pairing is a revisioned relation and may be re-paired.
    Existing KET SO / FINAL / CROSSCHECK / MVT / FSAGS workflows are opened unchanged.
@@ -6,8 +6,8 @@
 (function(root){
 "use strict";
 
-const VERSION="V1.91";
-const BUILD="V1.91-20260820-01";
+const VERSION="V1.92";
+const BUILD="V1.92-20260820-01";
 const ENGINE="SAGS_FLIGHT_WORKSPACE_V2";
 const SCHEMA=2;
 const DB_ROOT="flight_workspace_v2";
@@ -33,13 +33,14 @@ let dayCb=null,rosterCb=null;
 let selectedPairId="";
 let repairSelected=new Set();
 let started=false;
-let bootTimer=null;
 let eventsPrimed=false;
 let eventStartedAt=0;
 let seenEvents=new Set();
 let alertQueue=[];
 let alertShowing=false;
 let rosterImportPreview=null;
+let renderSessionCache=null;
+let legacyRosterHooked=false;
 
 function role(){
   try{return U((typeof currentRole!=="undefined"?currentRole:root.currentRole)||"");}catch(_){return U(root.currentRole||"");}
@@ -155,9 +156,18 @@ function sessionIdentity(meta){
   const d=S(meta?.rosterOpDate)||isoDate(stateVal(st,"date","f09_date","f421_date","f551_date"))||cxrDay(Number(meta?.createdAt)||Date.now());
   return {date:d,tokens:uniq([...tokens(before),...tokens(after),...tokens(name)]),group:S(meta?.initialGroup||env?.mainForm||env?.activeFormGroup||""),assignmentId:S(meta?.rosterAssignmentId),name,meta};
 }
+function buildLocalSessionCache(){
+  const items=[];
+  for(const meta of sessionList()){
+    const x=sessionIdentity(meta);
+    if(x.date===currentDay)items.push(x);
+  }
+  return items;
+}
 function localSessionsForPair(pair){
   const pTok=new Set(pairFlightTokens(pair));
-  return sessionList().map(sessionIdentity).filter(x=>x.date===currentDay&&x.tokens.some(f=>pTok.has(f)));
+  const source=renderSessionCache||buildLocalSessionCache();
+  return source.filter(x=>x.tokens.some(f=>pTok.has(f)));
 }
 function rosterAssignmentsForPair(pair,allUsers=false){
   const pTok=new Set(pairFlightTokens(pair)),me=username(),ad=isAD();
@@ -478,7 +488,7 @@ function installUi(){
     document.head.appendChild(style);
   }
   if(!document.getElementById("fwHome")){
-    const h=document.createElement("div");h.id="fwHome";h.innerHTML=`<div class="fwShell"><div class="fwTop"><div><div class="fwTitle">✈️ CHUYẾN BAY HÔM NAY <span class="fwVersion">V1.91</span></div><div class="fwSub" id="fwHeaderSub"></div><div class="fwDebug">Flight Workspace build ${BUILD}</div></div><div class="fwTopActions"><button class="fwBtn" id="fwRosterBtn" onclick="SAGSFlightWorkspace.openRosterImport()">📋 NHẬP DAILY ROSTER</button><button class="fwBtn green" id="fwCreateBtn" onclick="SAGSFlightWorkspace.openCreate()">＋ TẠO CHUYẾN THỦ CÔNG</button><button class="fwBtn" id="fwAssignBtn" onclick="SAGSFlightWorkspace.openAssignments()">👥 PHÂN CÔNG NHÂN SỰ</button><button class="fwBtn orange" id="fwRepairBtn" onclick="SAGSFlightWorkspace.openRepair()" disabled>🔀 ĐỔI CẶP</button><button class="fwBtn gray" onclick="SAGSFlightWorkspace.openGuide()">HDSD</button><button class="fwBtn gray" onclick="SAGSFlightWorkspace.close()">ĐÓNG</button></div></div><div class="fwBody"><div class="fwList" id="fwList"></div><div class="fwDetail" id="fwDetail"></div></div></div>`;document.body.appendChild(h);
+    const h=document.createElement("div");h.id="fwHome";h.innerHTML=`<div class="fwShell"><div class="fwTop"><div><div class="fwTitle">✈️ CHUYẾN BAY HÔM NAY <span class="fwVersion">V1.92</span></div><div class="fwSub" id="fwHeaderSub"></div><div class="fwDebug">Flight Workspace build ${BUILD}</div></div><div class="fwTopActions"><button class="fwBtn" id="fwRosterBtn" onclick="SAGSFlightWorkspace.openRosterImport()">📋 NHẬP DAILY ROSTER</button><button class="fwBtn green" id="fwCreateBtn" onclick="SAGSFlightWorkspace.openCreate()">＋ TẠO CHUYẾN THỦ CÔNG</button><button class="fwBtn" id="fwAssignBtn" onclick="SAGSFlightWorkspace.openAssignments()">👥 PHÂN CÔNG NHÂN SỰ</button><button class="fwBtn orange" id="fwRepairBtn" onclick="SAGSFlightWorkspace.openRepair()" disabled>🔀 ĐỔI CẶP</button><button class="fwBtn gray" onclick="SAGSFlightWorkspace.openGuide()">HDSD</button><button class="fwBtn gray" onclick="SAGSFlightWorkspace.close()">ĐÓNG</button></div></div><div class="fwBody"><div class="fwList" id="fwList"></div><div class="fwDetail" id="fwDetail"></div></div></div>`;document.body.appendChild(h);
   }
   if(!document.getElementById("fwCreateModal")){
     const m=document.createElement("div");m.id="fwCreateModal";m.innerHTML=`<div class="fwEditor"><h3>＋ AD · TẠO CHUYẾN BAY</h3><div class="fwSub">Tạo một lần từ đầu. Hệ thống sinh legId cố định cho chuyến đến và chuyến đi.</div><div class="fwGrid"><div class="fwField"><label>CHUYẾN ĐẾN</label><input id="fwCreateArrNo" placeholder="VD: VN1346"></div><div class="fwField"><label>CHẶNG ĐẾN CXR</label><input id="fwCreateOrigin" placeholder="VD: HAN"></div><div class="fwField"><label>STA</label><input id="fwCreateSta" placeholder="08:10"></div><div class="fwField"><label>CHUYẾN ĐI</label><input id="fwCreateDepNo" placeholder="VD: VN1347"></div><div class="fwField"><label>CHẶNG ĐI TỪ CXR</label><input id="fwCreateDest" placeholder="VD: SGN"></div><div class="fwField"><label>STD</label><input id="fwCreateStd" placeholder="09:05"></div><div class="fwField"><label>A/C REG</label><input id="fwCreateReg" placeholder="VD: VN-Axxx"></div><div class="fwField"><label>A/C TYPE</label><input id="fwCreateType" placeholder="VD: A321"></div><div class="fwField"><label>BAY</label><input id="fwCreateBay"></div><div class="fwField"><label>GATE</label><input id="fwCreateGate"></div></div><div id="fwCreateStatus" class="fwFormStatus"></div><div class="fwActions" style="justify-content:flex-end"><button class="fwBtn gray" onclick="SAGSFlightWorkspace.closeEditor('fwCreateModal')">HỦY</button><button class="fwBtn green" onclick="SAGSFlightWorkspace.createPairFromForm()">TẠO FLIGHT WORKSPACE</button></div></div>`;document.body.appendChild(m);
@@ -496,7 +506,7 @@ function installUi(){
     const m=document.createElement("div");m.id="fwRepairModal";m.innerHTML=`<div class="fwEditor"><h3>🔀 AD · ĐỔI CẶP CHUYẾN</h3><div class="fwSub" id="fwRepairOld"></div><input type="hidden" id="fwRepairPair1"><input type="hidden" id="fwRepairPair2"><div class="fwGrid"><div class="fwField"><label>CHUYẾN THỨ NHẤT CỦA CẶP MỚI</label><select id="fwRepairFirst" onchange="SAGSFlightWorkspace.rebuildRepairPartner()"></select></div><div class="fwField"><label>CHUYẾN GHÉP CÙNG</label><select id="fwRepairPartner" onchange="SAGSFlightWorkspace.updateRepairPreview()"></select></div><div class="fwPanel fwSpan2" style="margin:0"><b id="fwRepairPreview"></b></div></div><div id="fwRepairStatus" class="fwFormStatus"></div><div class="fwActions" style="justify-content:flex-end"><button class="fwBtn gray" onclick="SAGSFlightWorkspace.closeEditor('fwRepairModal')">HỦY</button><button class="fwBtn orange" onclick="SAGSFlightWorkspace.saveRepair()">XÁC NHẬN ĐỔI CẶP</button></div></div>`;document.body.appendChild(m);
   }
   if(!document.getElementById("fwGuideModal")){
-    const m=document.createElement("div");m.id="fwGuideModal";m.innerHTML=`<div class="fwEditor fwGuide"><h3>HDSD · FLIGHT WORKSPACE V1.91</h3><h4>1. Ai tạo chuyến?</h4><div>AD có thể <b>NHẬP DAILY ROSTER</b> hoặc <b>TẠO CHUYẾN THỦ CÔNG</b>. Roster chỉ tạo/cập nhật sau khi AD xem trước và bấm XÁC NHẬN; không tự sinh chuyến khi chỉ đọc file.</div><h4>2. Một chuyến được nhận diện thế nào?</h4><div>Mỗi chuyến đơn có <b>legId cố định</b>. Flight No, route, A/C Reg, A/C Type, STA/STD là thông tin có thể thay đổi bằng revision, không phải ID chính.</div><h4>3. Đổi tàu bay / đổi chặng / đổi số hiệu</h4><div>AD chọn chuyến → <b>CẬP NHẬT KHAI THÁC</b>. Hệ thống giữ legId, lưu revision và đánh dấu các dữ liệu phụ thuộc là <b>CẦN KIỂM TRA LẠI</b>.</div><h4>4. Đổi cặp A-B + C-D → A-C + B-D</h4><div>AD đánh dấu đúng 2 cặp → <b>ĐỔI CẶP</b> → chọn chuyến ghép mới với chuyến neo. Bốn legId được giữ nguyên; chỉ quan hệ pairing đổi. Hai workspace liên quan được đánh dấu cần kiểm tra lại.</div><h4>5. Phân công nhân sự</h4><div>Roster phân công theo Grnd_Cor / Grnd_Ld / Pax_Supr bằng đúng quy tắc hiện tại. AD cũng có thể chọn chuyến → <b>PHÂN CÔNG NHÂN SỰ</b> để cấp quyền vào đúng chuyến theo vai trò. Role tài khoản không bị thay đổi bởi roster.</div><h4>6. Nhân viên làm việc</h4><div>Nhân viên vào <b>CHUYẾN BAY HÔM NAY</b> → chọn chuyến → xem <b>PHẦN VIỆC CỦA BẠN</b> → MỞ PHẦN VIỆC. Các bước KẾT SỔ / FINAL / CROSSCHECK / MVT / FSAGS vẫn chạy đúng luồng của bản hiện tại.</div><div class="fwActions" style="justify-content:flex-end;margin-top:14px"><button class="fwBtn" onclick="SAGSFlightWorkspace.closeEditor('fwGuideModal')">ĐÓNG</button></div></div>`;document.body.appendChild(m);
+    const m=document.createElement("div");m.id="fwGuideModal";m.innerHTML=`<div class="fwEditor fwGuide"><h3>HDSD · FLIGHT WORKSPACE V1.92</h3><h4>1. Ai tạo chuyến?</h4><div>AD có thể <b>NHẬP DAILY ROSTER</b> hoặc <b>TẠO CHUYẾN THỦ CÔNG</b>. Roster chỉ tạo/cập nhật sau khi AD xem trước và bấm XÁC NHẬN; không tự sinh chuyến khi chỉ đọc file.</div><h4>2. Một chuyến được nhận diện thế nào?</h4><div>Mỗi chuyến đơn có <b>legId cố định</b>. Flight No, route, A/C Reg, A/C Type, STA/STD là thông tin có thể thay đổi bằng revision, không phải ID chính.</div><h4>3. Đổi tàu bay / đổi chặng / đổi số hiệu</h4><div>AD chọn chuyến → <b>CẬP NHẬT KHAI THÁC</b>. Hệ thống giữ legId, lưu revision và đánh dấu các dữ liệu phụ thuộc là <b>CẦN KIỂM TRA LẠI</b>.</div><h4>4. Đổi cặp A-B + C-D → A-C + B-D</h4><div>AD đánh dấu đúng 2 cặp → <b>ĐỔI CẶP</b> → chọn chuyến ghép mới với chuyến neo. Bốn legId được giữ nguyên; chỉ quan hệ pairing đổi. Hai workspace liên quan được đánh dấu cần kiểm tra lại.</div><h4>5. Phân công nhân sự</h4><div>Roster phân công theo Grnd_Cor / Grnd_Ld / Pax_Supr bằng đúng quy tắc hiện tại. AD cũng có thể chọn chuyến → <b>PHÂN CÔNG NHÂN SỰ</b> để cấp quyền vào đúng chuyến theo vai trò. Role tài khoản không bị thay đổi bởi roster.</div><h4>6. Nhân viên làm việc</h4><div>Nhân viên vào <b>CHUYẾN BAY HÔM NAY</b> → chọn chuyến → xem <b>PHẦN VIỆC CỦA BẠN</b> → MỞ PHẦN VIỆC. Các bước KẾT SỔ / FINAL / CROSSCHECK / MVT / FSAGS vẫn chạy đúng luồng của bản hiện tại.</div><div class="fwActions" style="justify-content:flex-end;margin-top:14px"><button class="fwBtn" onclick="SAGSFlightWorkspace.closeEditor('fwGuideModal')">ĐÓNG</button></div></div>`;document.body.appendChild(m);
   }
   if(!document.getElementById("fwAlertModal")){
     const m=document.createElement("div");m.id="fwAlertModal";m.innerHTML=`<div class="fwAlertBox"><h3>⚠️ THÔNG TIN CHUYẾN ĐÃ THAY ĐỔI</h3><div class="fwAlertText" id="fwAlertText"></div><div class="fwActions" style="justify-content:flex-end;margin-top:14px"><button class="fwBtn red" onclick="SAGSFlightWorkspace.ackAlert()">ĐÃ BIẾT</button></div></div>`;document.body.appendChild(m);
@@ -504,12 +514,21 @@ function installUi(){
 }
 
 function ensureEntry(){
-  if(!role())return;
+  if(!role())return false;
+  let changed=false;
   const legacyRoster=document.getElementById("roleBtnDailyRoster");
-  if(legacyRoster&&isAD()){legacyRoster.textContent="📋 DAILY ROSTER → CHUYẾN";legacyRoster.onclick=()=>{open();setTimeout(openRosterImport,40);};}
+  if(legacyRoster&&isAD()&&!legacyRosterHooked){
+    if(legacyRoster.textContent!=="📋 DAILY ROSTER → CHUYẾN")legacyRoster.textContent="📋 DAILY ROSTER → CHUYẾN";
+    legacyRoster.onclick=()=>{open();setTimeout(openRosterImport,40);};
+    legacyRosterHooked=true;changed=true;
+  }
   const bar=document.querySelector(".toolbar-row.main-actions");let b=document.getElementById("roleBtnFlightWorkspace");
-  if(bar){if(!b){b=document.createElement("button");b.id="roleBtnFlightWorkspace";b.className="fwRoleButton";b.textContent="✈️ CHUYẾN BAY";b.onclick=open;const a=document.getElementById("roleBtnFlights");a?.parentNode?a.parentNode.insertBefore(b,a):bar.insertBefore(b,bar.firstChild);}b.style.display="";const f=document.getElementById("fwFloating");if(f)f.remove();}
-  else if(!document.getElementById("fwFloating")){const f=document.createElement("button");f.id="fwFloating";f.className="fwFloating";f.textContent="✈️ CHUYẾN BAY · V1.91";f.onclick=open;document.body.appendChild(f);}
+  if(bar){
+    if(!b){b=document.createElement("button");b.id="roleBtnFlightWorkspace";b.className="fwRoleButton";b.textContent="✈️ CHUYẾN BAY";b.onclick=open;const a=document.getElementById("roleBtnFlights");a?.parentNode?a.parentNode.insertBefore(b,a):bar.insertBefore(b,bar.firstChild);changed=true;}
+    if(b.style.display!=="")b.style.display="";
+    const f=document.getElementById("fwFloating");if(f){f.remove();changed=true;}
+  }else if(!document.getElementById("fwFloating")){const f=document.createElement("button");f.id="fwFloating";f.className="fwFloating";f.textContent="✈️ CHUYẾN BAY · V1.92";f.onclick=open;document.body.appendChild(f);changed=true;}
+  return changed;
 }
 
 function renderList(){
@@ -528,9 +547,9 @@ function renderDetail(){
   host.innerHTML=`<div class="fwPanel"><div class="fwCardTop"><div><div class="fwFlight">${esc(pairTitle(p))}</div><div class="fwMeta">${esc(pairRoute(p))}</div><div class="fwMeta">${esc(pairTimes(p))}${pairAircraft(p)?" · "+esc(pairAircraft(p)):""}</div><div class="fwMeta">Pair ID: ${esc(p.pairId)} · REV ${Number(p.revision)||1}</div></div>${isAD()?`<div class="fwActions"><button class="fwBtn" onclick="SAGSFlightWorkspace.openAssignments('${esc(p.pairId)}')">👥 PHÂN CÔNG</button><button class="fwBtn" onclick="SAGSFlightWorkspace.openEdit('${esc(p.pairId)}')">✏️ CẬP NHẬT KHAI THÁC</button></div>`:""}</div></div>${p.needsReview?`<div class="fwWarn">⚠️ <b>CẦN KIỂM TRA LẠI</b><br>Thông tin khai thác hoặc cặp chuyến đã thay đổi ở revision mới. Dữ liệu cũ không bị xóa nhưng các phần phụ thuộc cặp chuyến cần được kiểm tra theo đúng quy trình hiện tại.</div>`:""}${manualAccess.length?`<div class="fwPanel"><b>PHÂN CÔNG VÀO CHUYẾN</b>${manualAccess.map(a=>`<div class="fwTask"><div><b>${esc(a.assignmentRole||"ĐƯỢC PHÂN CÔNG")}</b><div class="fwMeta">${isAD()?esc(a.user||""):"Bạn được AD phân công thủ công vào Flight Workspace này."}</div></div><span class="fwPill">THỦ CÔNG</span></div>`).join("")}</div>`:""}<div class="fwPanel"><b>${isAD()?"PHẦN VIỆC CỦA CÁC BỘ PHẬN":"PHẦN VIỆC CỦA BẠN"}</b>${tasks.length?tasks.map(t=>`<div class="fwTask"><div><b>${esc(t.title)}</b><div class="fwMeta">${esc(t.meta||"")}</div></div>${t.sessionId?`<button class="fwBtn green" onclick="SAGSFlightWorkspace.openTask('${esc(p.pairId)}','${esc(t.sessionId)}')">MỞ PHẦN VIỆC</button>`:`<span class="fwPill warn">CHỜ ĐỒNG BỘ</span>`}</div>`).join(""):'<div class="fwMeta" style="margin-top:10px">Chưa có phần việc từ roster/hồ sơ hiện tại khớp với chuyến này.</div>'}</div><div class="fwPanel"><b>CHUYẾN ĐƠN / LEG ID</b>${ls.map(l=>`<div class="fwTask"><div><b>${esc(l.direction)} · ${esc(l.flightNo)}</b><div class="fwMeta">${esc(l.origin)} → ${esc(l.destination)} · legId ${esc(l.legId)} · REV ${Number(l.revision)||1}</div></div><span class="fwPill">${esc(l.acReg||l.acType||"ACTIVE")}</span></div>`).join("")}</div>`;
 }
 function render(){
-  installUi();const sub=document.getElementById("fwHeaderSub");if(sub)sub.textContent=`${currentDay||cxrDay()} · ${role()||"—"}${username()?" · "+username():""} · Chọn chuyến → lấy phần việc`;
+  installUi();renderSessionCache=buildLocalSessionCache();const sub=document.getElementById("fwHeaderSub");if(sub)sub.textContent=`${currentDay||cxrDay()} · ${role()||"—"}${username()?" · "+username():""} · Chọn chuyến → lấy phần việc`;
   const create=document.getElementById("fwCreateBtn"),repair=document.getElementById("fwRepairBtn"),rb=document.getElementById("fwRosterBtn"),ab=document.getElementById("fwAssignBtn");for(const b of [create,repair,rb,ab])if(b)b.style.display=isAD()?"":"none";
-  renderList();renderDetail();renderRepairAction();const assignBtn=document.getElementById("fwAssignBtn");if(assignBtn)assignBtn.disabled=!selectedPairId;
+  try{renderList();renderDetail();renderRepairAction();const assignBtn=document.getElementById("fwAssignBtn");if(assignBtn)assignBtn.disabled=!selectedPairId;}finally{renderSessionCache=null;}
 }
 function selectPair(id){selectedPairId=S(id);const p=dayStore.pairs?.[selectedPairId];setActive(p);render();}
 function openTask(pairId,sessionId){const p=dayStore.pairs?.[pairId];setActive(p);close();try{if(typeof switchFlightSession==="function")return switchFlightSession(sessionId);}catch(e){console.error(e);}toast("Không mở được phần việc trên thiết bị này.");}
@@ -552,25 +571,30 @@ function ackAlert(){document.getElementById("fwAlertModal")?.classList.remove("s
 function disconnect(){
   try{if(dayRef&&dayCb)dayRef.off("value",dayCb);}catch(_){}try{if(rosterRef&&rosterCb)rosterRef.off("value",rosterCb);}catch(_){}dayRef=dayCb=rosterRef=rosterCb=null;
 }
+function homeVisible(){return document.getElementById("fwHome")?.classList.contains("show")===true;}
+function renderIfVisible(){if(homeVisible())render();}
 function connectDay(d){
-  d=d||cxrDay();if(currentDay===d&&dayRef)return;disconnect();currentDay=d;dayStore=loadLocal(d);roster=null;eventsPrimed=false;seenEvents.clear();eventStartedAt=now();render();
-  const dr=rtdb(`${DB_ROOT}/days/${safe(d)}`);if(dr){dayRef=dr;dayCb=s=>{dayStore=normalizeStore(s.val()||{});saveLocal(d,dayStore);queueEventAlerts(dayStore.events);render();};try{dr.on("value",dayCb,e=>console.warn("Flight Workspace day",e));}catch(e){console.warn(e);}}
-  const rr=rtdb(`${ROSTER_MANIFEST}/${safe(d)}`);if(rr){rosterRef=rr;rosterCb=s=>{roster=s.val()||null;render();};try{rr.on("value",rosterCb,e=>console.warn("Flight Workspace roster",e));}catch(e){console.warn(e);}}
+  d=d||cxrDay();if(currentDay===d&&dayRef)return;disconnect();currentDay=d;dayStore=loadLocal(d);roster=null;eventsPrimed=false;seenEvents.clear();eventStartedAt=now();renderIfVisible();
+  const dr=rtdb(`${DB_ROOT}/days/${safe(d)}`);if(dr){dayRef=dr;dayCb=s=>{dayStore=normalizeStore(s.val()||{});saveLocal(d,dayStore);queueEventAlerts(dayStore.events);renderIfVisible();};try{dr.on("value",dayCb,e=>console.warn("Flight Workspace day",e));}catch(e){console.warn(e);}}
+  const rr=rtdb(`${ROSTER_MANIFEST}/${safe(d)}`);if(rr){rosterRef=rr;rosterCb=s=>{roster=s.val()||null;renderIfVisible();};try{rr.on("value",rosterCb,e=>console.warn("Flight Workspace roster",e));}catch(e){console.warn(e);}}
 }
 function maybeOpenHome(){
   if(!role())return;ensureEntry();connectDay(cxrDay());const key=`${HOME_KEY}|${cxrDay()}|${username()||role()}`;try{if(sessionStorage.getItem(key)==="1")return;sessionStorage.setItem(key,"1");}catch(_){}
   setTimeout(()=>{if(role())open();},120);
 }
+function scheduleBootChecks(){
+  [0,250,900,2200,5000].forEach(ms=>setTimeout(()=>{if(role())maybeOpenHome();else ensureEntry();},ms));
+}
 function start(){
   if(started)return;started=true;installUi();
-  try{const base=root.applyRoleUI;if(typeof base==="function"&&!base.__fw191){const wrap=function(){const r=base.apply(this,arguments);setTimeout(maybeOpenHome,80);return r;};wrap.__fw191=true;root.applyRoleUI=wrap;}}catch(_){}
-  try{const mo=new MutationObserver(()=>{if(role()){ensureEntry();maybeOpenHome();}});mo.observe(document.body,{childList:true,subtree:true});root.__fw191Observer=mo;}catch(_){}
-  let n=0;bootTimer=setInterval(()=>{n++;if(role())maybeOpenHome();if(n>120){clearInterval(bootTimer);bootTimer=null;}},500);
-  document.addEventListener("visibilitychange",()=>{if(!document.hidden&&role()){connectDay(cxrDay());render();}});
-  maybeOpenHome();
+  try{const base=root.applyRoleUI;if(typeof base==="function"&&!base.__fw192){const wrap=function(){const r=base.apply(this,arguments);setTimeout(maybeOpenHome,80);return r;};wrap.__fw192=true;root.applyRoleUI=wrap;}}catch(_){}
+  scheduleBootChecks();
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden&&role()){connectDay(cxrDay());renderIfVisible();}});
+  root.addEventListener?.("sags:auth-ready",maybeOpenHome);
+  root.addEventListener?.("sags:role-changed",maybeOpenHome);
 }
 
-root.__SAGS_FW191_TEST__={planRepair,tokens,fmtTime,isoDate,flightNo,station,roleKey,parseRosterImportFile,buildRosterCandidates,rosterOpsDiff,rosterRecordKey,assignmentRecordKey};
+root.__SAGS_FW192_TEST__={planRepair,tokens,fmtTime,isoDate,flightNo,station,roleKey,parseRosterImportFile,buildRosterCandidates,rosterOpsDiff,rosterRecordKey,assignmentRecordKey};
 root.SAGSFlightWorkspace={version:VERSION,build:BUILD,engine:ENGINE,schema:SCHEMA,open,close,openGuide,selectPair,openTask,openCreate,createPairFromForm,openRosterImport,readRosterImport,confirmRosterImport,openAssignments,addManualAssignment,removeManualAssignment,openEdit,saveEdit,toggleRepair,openRepair,rebuildRepairPartner,updateRepairPreview,saveRepair,closeEditor,ackAlert,getActive:activeContext,getPair:id=>clone(dayStore.pairs?.[id]||null),getLeg:id=>clone(dayStore.legs?.[id]||null),getAssignments:id=>clone(assignmentItemsForPair(dayStore.pairs?.[id],true)),needsReview:id=>dayStore.pairs?.[id]?.needsReview===true,refresh:()=>{connectDay(cxrDay());render();}};
 root.openFlightWorkspace=open;
 root.getActiveFlightWorkspace=activeContext;

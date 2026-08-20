@@ -1,6 +1,6 @@
-const CACHE_NAME="sags-v1-91-roster-workspace-20260820-01";
-const BUILD="V1.91-20260820-01";
-const DISPLAY_VERSION="V1.91 AI";
+const CACHE_NAME="sags-v1-92-performance-hotfix-20260820-01";
+const BUILD="V1.92-20260820-01";
+const DISPLAY_VERSION="V1.92 AI";
 const APP_SHELL=[
   "./index.html","./version.json","./update-manifest.json","./firebase-config.js","./update-runtime.js","./flight-workspace.js","./daily-roster.js","./v488-archive.js","./ai-crosscheck.js","./document-scanner.js","./admin-builder.js","./ac-limits.js","./bbbt-quick-entry.js",
   "./alert-mva.mp3","./alert-mvt.mp3","./alert-pushback-missing.mp3","./alert-read-sign.mp3","./alert-ket-so-moi.mp3","./alert-ket-so-thay-doi.mp3",

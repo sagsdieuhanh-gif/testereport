@@ -1,0 +1,11 @@
+E-REPORT SAGS V1.92 PERFORMANCE HOTFIX
+Build: V1.92-20260820-01
+
+CACH UP:
+1. Giai nen ZIP.
+2. Chon toan bo file trong ZIP.
+3. Upload de vao thu muc goc E-REPORT-SAGS.
+4. Khong can doi ten/copy file rieng.
+5. Tren may dang dung ban cu, bam CAP NHAT mot lan khi popup xuat hien.
+
+Muc tieu ban nay: sua lag V1.91, khong thay doi luong nghiep vu.

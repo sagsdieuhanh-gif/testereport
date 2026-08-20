@@ -1,11 +1,11 @@
 {
   "schema": 1,
-  "version": "V1.91",
-  "displayVersion": "V1.91 AI",
-  "build": "V1.91-20260820-01",
-  "serviceWorkerBuild": "V1.91-20260820-01",
-  "updateRuntimeBuild": "V1.91-20260820-01",
-  "flightWorkspaceBuild": "V1.91-20260820-01",
-  "firebaseConfigBuild": "V1.91-20260820-01",
+  "version": "V1.92",
+  "displayVersion": "V1.92 AI",
+  "build": "V1.92-20260820-01",
+  "serviceWorkerBuild": "V1.92-20260820-01",
+  "updateRuntimeBuild": "V1.92-20260820-01",
+  "flightWorkspaceBuild": "V1.92-20260820-01",
+  "firebaseConfigBuild": "V1.92-20260820-01",
   "releaseDate": "2026-08-20"
 }

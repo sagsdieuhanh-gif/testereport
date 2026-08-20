@@ -1,6 +1,6 @@
 // E-REPORT SAGS · Firebase Web App config for GitHub Pages
 // Project: e-report-sags
-// V1.91: verified safe update runtime + Flight Workspace roster/assignment release.
+// V1.92: performance hotfix for Flight Workspace and update runtime.
 window.SAGS_FIREBASE_CONFIG = Object.freeze({
   apiKey: "AIzaSyCImOnRxvqbL-sRGbiS2eFE_Wmvktgc8oI",
   authDomain: "e-report-sags.firebaseapp.com",
@@ -13,7 +13,7 @@ window.SAGS_FIREBASE_CONFIG = Object.freeze({
 });
 
 (function loadSagsUpdateRuntime(){
-  const BUILD="V1.91-20260820-01";
+  const BUILD="V1.92-20260820-01";
   try{
     if(document.querySelector('script[data-sags-update-runtime-loader]'))return;
     const s=document.createElement("script");

@@ -1,12 +1,12 @@
-/* E-REPORT SAGS · SAFE UPDATE RUNTIME · V1.91
+/* E-REPORT SAGS · SAFE UPDATE RUNTIME · V1.92
    Fixes repeated update prompts by using a release manifest, semantic build ordering,
    verified service-worker activation, and cleanup after the target build becomes active.
 */
 (function(root){
 "use strict";
-const RELEASE_VERSION="V1.91";
-const RELEASE_DISPLAY="V1.91 AI";
-const RELEASE_BUILD="V1.91-20260820-01";
+const RELEASE_VERSION="V1.92";
+const RELEASE_DISPLAY="V1.92 AI";
+const RELEASE_BUILD="V1.92-20260820-01";
 const VERSION_URL="./version.json";
 const MANIFEST_URL="./update-manifest.json";
 const DISMISS_KEY="pdh-update-dismissed";
@@ -44,7 +44,7 @@ function currentDisplay(){
   return S(root.SAGS_RUNTIME_DISPLAY||document.documentElement.getAttribute("data-app-version")||document.getElementById("buildMarker")?.textContent);
 }
 function syncRuntimeDisplay(){
-  // Never relabel an old page before V1.91 is actually active.
+  // Never relabel an old page before V1.92 is actually active.
   if(S(currentBuild())!==RELEASE_BUILD)return false;
   try{
     root.SAGS_RUNTIME_DISPLAY=RELEASE_DISPLAY;
@@ -197,12 +197,19 @@ function installLegacyPromptGuard(){
       if(m&&m.style.display!=="none")m.style.display="none";
       const b=document.getElementById("appUpdateNowBtn");if(b&&state.busy===false)b.disabled=false;
     };
-    const mo=new MutationObserver(guard);mo.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:["style","class"]});state.legacyObserver=mo;setInterval(guard,4000);guard();
+    const modal=document.getElementById("appUpdateModal");
+    if(modal){const mo=new MutationObserver(guard);mo.observe(modal,{attributes:true,attributeFilter:["style","class"]});state.legacyObserver=mo;}
+    guard();
   }catch(_){}
 }
+let overrideAttempts=0;
 function installOverrides(){
   if(state.installed)return;
-  if(typeof root.applyAppUpdate!=="function"||!document.getElementById("appUpdateNowBtn")){setTimeout(installOverrides,60);return;}
+  if(typeof root.applyAppUpdate!=="function"||!document.getElementById("appUpdateNowBtn")){
+    const delays=[80,160,320,640,1200,2400,4800];
+    if(overrideAttempts<delays.length)setTimeout(installOverrides,delays[overrideAttempts++]);
+    return;
+  }
   state.installed=true;installLegacyPromptGuard();
   root.applyAppUpdate=apply;
   root.dismissAppUpdate=dismiss;
