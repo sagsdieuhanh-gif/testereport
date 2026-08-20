@@ -1,0 +1,12 @@
+E-REPORT SAGS V1.91 — CÁCH CẬP NHẬT
+
+1) Giải nén file ZIP.
+2) Chọn TOÀN BỘ file bên trong và upload đè vào thư mục gốc E-REPORT-SAGS.
+3) Không copy/đổi tên/sửa index.html thủ công.
+4) Sau khi GitHub Pages/hosting đồng bộ file, mở E-Report.
+5) Khi hiện V1.91 AI, bấm LƯU & CẬP NHẬT một lần.
+6) Sau reload kiểm tra nhãn V1.91 AI. Mở lại/kiểm tra update lần nữa không được hiện lại yêu cầu cập nhật V1.91.
+
+Build đồng bộ: V1.91-20260820-01
+Các file critical: version.json, update-manifest.json, service-worker.js,
+update-runtime.js, firebase-config.js, flight-workspace.js.
